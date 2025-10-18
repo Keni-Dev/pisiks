@@ -70,3 +70,46 @@ export function mpsToKph(mps: number): number {
 export function mToKm(m: number): number {
   return m / 1000;
 }
+
+/**
+ * Calculates the minimum and maximum displacement for a motion
+ * 
+ * @param initialVelocity - Initial velocity (u) in m/s
+ * @param acceleration - Acceleration (a) in m/s²
+ * @param duration - Total time duration in seconds
+ * @returns Object with minDisplacement and maxDisplacement in meters
+ */
+export function calculateMotionBounds(
+  initialVelocity: number,
+  acceleration: number,
+  duration: number
+): { minDisplacement: number; maxDisplacement: number } {
+  // Always include displacement at t=0 (which is 0)
+  const displacements = [0];
+
+  // Include displacement at final time
+  const finalDisplacement = calculateDisplacement(initialVelocity, acceleration, duration);
+  displacements.push(finalDisplacement);
+
+  // Check if velocity changes sign (turning point) during the simulation
+  // This happens when acceleration and initial velocity have opposite signs
+  // and velocity becomes zero at time t = -u/a
+  if (acceleration !== 0) {
+    const turningPointTime = -initialVelocity / acceleration;
+    
+    // Only consider turning point if it's within the simulation duration
+    if (turningPointTime > 0 && turningPointTime < duration) {
+      const turningPointDisplacement = calculateDisplacement(
+        initialVelocity,
+        acceleration,
+        turningPointTime
+      );
+      displacements.push(turningPointDisplacement);
+    }
+  }
+
+  return {
+    minDisplacement: Math.min(...displacements),
+    maxDisplacement: Math.max(...displacements)
+  };
+}

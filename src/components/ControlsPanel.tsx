@@ -8,8 +8,10 @@ interface ControlsPanelProps {
     u: number;
     a: number;
     duration: number;
+    viewMode: 'horizontal' | 'vertical';
+    height: number;
   };
-  setSimulationParams: (params: { u: number; a: number; duration: number }) => void;
+  setSimulationParams: (params: { u: number; a: number; duration: number; viewMode: 'horizontal' | 'vertical'; height: number }) => void;
   isRunning: boolean;
   onStart: () => void;
   onPause: () => void;
@@ -45,11 +47,14 @@ export default function ControlsPanel({
     const newMotionType = value as MotionType;
     setMotionType(newMotionType);
 
-    // Update acceleration based on motion type
+    // Update acceleration and view mode based on motion type
     if (newMotionType === 'uniform') {
-      setSimulationParams({ ...simulationParams, a: 0 });
+      setSimulationParams({ ...simulationParams, a: 0, viewMode: 'horizontal' });
     } else if (newMotionType === 'freefall') {
-      setSimulationParams({ ...simulationParams, a: 9.8 });
+      // For freefall, acceleration is negative (downward) and initial velocity should be 0 or negative
+      setSimulationParams({ ...simulationParams, a: -9.8, u: 0, viewMode: 'vertical' });
+    } else {
+      setSimulationParams({ ...simulationParams, viewMode: 'horizontal' });
     }
   };
 
@@ -63,6 +68,10 @@ export default function ControlsPanel({
 
   const handleDurationChange = (value: number) => {
     setSimulationParams({ ...simulationParams, duration: value });
+  };
+
+  const handleHeightChange = (value: number) => {
+    setSimulationParams({ ...simulationParams, height: value });
   };
 
   const isAccelerationDisabled = motionType === 'uniform' || motionType === 'freefall';
@@ -117,6 +126,19 @@ export default function ControlsPanel({
           step={0.1}
           unit="s"
         />
+
+        {/* Height Slider - only for freefall */}
+        {motionType === 'freefall' && (
+          <SliderInput
+            label="Initial Height (h)"
+            value={simulationParams.height}
+            onChange={handleHeightChange}
+            min={1}
+            max={200}
+            step={1}
+            unit="m"
+          />
+        )}
 
         {/* Divider */}
         <div className="border-t border-slate-200"></div>

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
 import type { PhysicsState } from './lib/physics';
+import { calculateMotionBounds } from './lib/physics';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
@@ -11,7 +12,9 @@ function App() {
   const [simulationParams, setSimulationParams] = useState({
     u: 10,  // initial velocity (m/s)
     a: 2,   // acceleration (m/s²)
-    duration: 10  // total simulation time (s)
+    duration: 10,  // total simulation time (s)
+    viewMode: 'horizontal' as 'horizontal' | 'vertical',
+    height: 50  // initial height for freefall (m)
   });
   const [physicsState, setPhysicsState] = useState<PhysicsState>({
     time: 0,
@@ -25,6 +28,20 @@ function App() {
     velocity: 'm/s',
     distance: 'm'
   });
+  const [motionBounds, setMotionBounds] = useState({
+    minDisplacement: 0,
+    maxDisplacement: 0
+  });
+
+  // Calculate motion bounds whenever simulation parameters change
+  useEffect(() => {
+    const bounds = calculateMotionBounds(
+      simulationParams.u,
+      simulationParams.a,
+      simulationParams.duration
+    );
+    setMotionBounds(bounds);
+  }, [simulationParams]);
 
   const handleStart = () => {
     setIsRunning(true);
@@ -44,9 +61,9 @@ function App() {
     });
   };
 
-  const handleUpdatePhysics = (newState: PhysicsState) => {
+  const handleUpdatePhysics = useCallback((newState: PhysicsState) => {
     setPhysicsState(newState);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -64,6 +81,9 @@ function App() {
             resetKey={resetKey}
             physicsState={physicsState}
             onUpdatePhysics={handleUpdatePhysics}
+            minDisplacement={motionBounds.minDisplacement}
+            maxDisplacement={motionBounds.maxDisplacement}
+            viewMode={simulationParams.viewMode}
           />
         </div>
         
