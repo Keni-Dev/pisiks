@@ -12,9 +12,10 @@ interface SimulationCanvasProps {
     a: number;  // acceleration (m/s²)
     duration: number;  // total simulation time (s)
   };
+  resetKey: number;
 }
 
-export default function SimulationCanvas({ isRunning, setIsRunning, simulationParams }: SimulationCanvasProps) {
+export default function SimulationCanvas({ isRunning, setIsRunning, simulationParams, resetKey }: SimulationCanvasProps) {
   const [physicsState, setPhysicsState] = useState<PhysicsState>({
     time: 0,
     velocity: 0,
@@ -28,6 +29,15 @@ export default function SimulationCanvas({ isRunning, setIsRunning, simulationPa
   useEffect(() => {
     physicsStateRef.current = physicsState;
   }, [physicsState]);
+
+  // Reset physics state when resetKey changes
+  useEffect(() => {
+    setPhysicsState({
+      time: 0,
+      velocity: 0,
+      displacement: 0
+    });
+  }, [resetKey]);
 
   // Reset physics state when simulation stops
   useEffect(() => {

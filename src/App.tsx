@@ -6,6 +6,7 @@ import DataPanel from './components/DataPanel';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const [simulationParams, setSimulationParams] = useState({
     u: 10,  // initial velocity (m/s)
     a: 2,   // acceleration (m/s²)
@@ -22,7 +23,7 @@ function App() {
 
   const handleReset = () => {
     setIsRunning(false);
-    // The physics state will reset automatically via useEffect in SimulationCanvas
+    setResetKey(prev => prev + 1);
   };
 
   return (
@@ -38,6 +39,7 @@ function App() {
             isRunning={isRunning}
             setIsRunning={setIsRunning}
             simulationParams={simulationParams}
+            resetKey={resetKey}
           />
         </div>
         

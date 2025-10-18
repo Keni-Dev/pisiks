@@ -17,6 +17,9 @@ export default function SliderInput({
   step,
   unit = ''
 }: SliderInputProps) {
+  // Check if value is out of bounds
+  const isOutOfBounds = value < min || value > max;
+
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(parseFloat(e.target.value));
   };
@@ -60,9 +63,14 @@ export default function SliderInput({
             step={step}
             value={value}
             onChange={handleNumberChange}
-            className="w-20 px-3 py-1.5 text-sm text-slate-900 border border-slate-300 rounded-md
-                       focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
-                       hover:border-slate-400"
+            className={`
+              w-20 px-3 py-1.5 text-sm text-slate-900 border rounded-md
+              focus:outline-none focus:ring-2 focus:ring-offset-2
+              ${isOutOfBounds
+                ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                : 'border-slate-300 focus:ring-orange-500 focus:border-transparent hover:border-slate-400'
+              }
+            `}
           />
           {unit && (
             <span className="text-sm text-slate-600 font-medium min-w-[2.5rem]">
@@ -71,6 +79,13 @@ export default function SliderInput({
           )}
         </div>
       </div>
+      
+      {/* Validation Error Message */}
+      {isOutOfBounds && (
+        <p className="text-xs text-red-600 mt-1">
+          Value must be between {min} and {max}
+        </p>
+      )}
     </div>
   );
 }
