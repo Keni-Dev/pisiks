@@ -1,47 +1,39 @@
-import { useRef, useEffect } from 'react';
+import { useCallback, useState } from 'react';
+import { useCanvas } from '../hooks/useCanvas';
+import { useAnimationLoop } from '../hooks/useAnimationLoop';
 
 export default function SimulationCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ballPosition, setBallPosition] = useState({ x: 50, y: 200 });
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Update function called on each frame
+  const update = useCallback(() => {
+    setBallPosition((prev) => ({
+      x: prev.x + 1,
+      y: prev.y,
+    }));
+  }, []);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // Start the animation loop
+  useAnimationLoop(update);
 
-    // Initialize canvas with a light background
+  const draw = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Set background color
     ctx.fillStyle = '#F8FAFC';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw a placeholder grid
-    ctx.strokeStyle = '#E2E8F0';
-    ctx.lineWidth = 1;
+    // Draw the ball at its current position
+    const radius = 15; // 30px diameter = 15px radius
 
-    // Vertical lines
-    for (let x = 0; x <= canvas.width; x += 50) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-
-    // Horizontal lines
-    for (let y = 0; y <= canvas.height; y += 50) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    // Draw center axis
-    ctx.strokeStyle = '#94A3B8';
-    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
-  }, []);
+    ctx.arc(ballPosition.x, ballPosition.y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = '#FB923C'; // Orange color (Tailwind orange-400)
+    ctx.fill();
+  }, [ballPosition]);
+
+  const canvasRef = useCanvas(draw);
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6">
