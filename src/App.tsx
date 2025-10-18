@@ -3,6 +3,7 @@ import Header from './components/Header';
 import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
+import type { PhysicsState } from './lib/physics';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
@@ -11,6 +12,18 @@ function App() {
     u: 10,  // initial velocity (m/s)
     a: 2,   // acceleration (m/s²)
     duration: 10  // total simulation time (s)
+  });
+  const [physicsState, setPhysicsState] = useState<PhysicsState>({
+    time: 0,
+    velocity: 0,
+    displacement: 0
+  });
+  const [displayUnits, setDisplayUnits] = useState<{
+    velocity: 'm/s' | 'km/h';
+    distance: 'm' | 'km';
+  }>({
+    velocity: 'm/s',
+    distance: 'm'
   });
 
   const handleStart = () => {
@@ -24,6 +37,15 @@ function App() {
   const handleReset = () => {
     setIsRunning(false);
     setResetKey(prev => prev + 1);
+    setPhysicsState({
+      time: 0,
+      velocity: 0,
+      displacement: 0
+    });
+  };
+
+  const handleUpdatePhysics = (newState: PhysicsState) => {
+    setPhysicsState(newState);
   };
 
   return (
@@ -40,6 +62,8 @@ function App() {
             setIsRunning={setIsRunning}
             simulationParams={simulationParams}
             resetKey={resetKey}
+            physicsState={physicsState}
+            onUpdatePhysics={handleUpdatePhysics}
           />
         </div>
         
@@ -52,8 +76,14 @@ function App() {
             onStart={handleStart}
             onPause={handlePause}
             onReset={handleReset}
+            displayUnits={displayUnits}
+            setDisplayUnits={setDisplayUnits}
           />
-          <DataPanel />
+          <DataPanel 
+            physicsState={physicsState}
+            simulationParams={simulationParams}
+            displayUnits={displayUnits}
+          />
         </div>
       </main>
     </div>

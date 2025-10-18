@@ -14,6 +14,11 @@ interface ControlsPanelProps {
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
+  displayUnits: {
+    velocity: 'm/s' | 'km/h';
+    distance: 'm' | 'km';
+  };
+  setDisplayUnits: (units: { velocity: 'm/s' | 'km/h'; distance: 'm' | 'km' }) => void;
 }
 
 type MotionType = 'uniform' | 'accelerated' | 'freefall';
@@ -24,7 +29,9 @@ export default function ControlsPanel({
   isRunning,
   onStart,
   onPause,
-  onReset
+  onReset,
+  displayUnits,
+  setDisplayUnits
 }: ControlsPanelProps) {
   const [motionType, setMotionType] = useState<MotionType>('accelerated');
 
@@ -110,6 +117,76 @@ export default function ControlsPanel({
           step={0.1}
           unit="s"
         />
+
+        {/* Divider */}
+        <div className="border-t border-slate-200"></div>
+
+        {/* Unit Display Toggles */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-slate-700">Display Units</h3>
+          
+          {/* Velocity Units Toggle */}
+          <div>
+            <label className="text-xs text-slate-600 mb-2 block">Velocity</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'm/s' })}
+                className={`
+                  flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200
+                  ${displayUnits.velocity === 'm/s'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }
+                `}
+              >
+                m/s
+              </button>
+              <button
+                onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'km/h' })}
+                className={`
+                  flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200
+                  ${displayUnits.velocity === 'km/h'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }
+                `}
+              >
+                km/h
+              </button>
+            </div>
+          </div>
+
+          {/* Distance Units Toggle */}
+          <div>
+            <label className="text-xs text-slate-600 mb-2 block">Distance</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDisplayUnits({ ...displayUnits, distance: 'm' })}
+                className={`
+                  flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200
+                  ${displayUnits.distance === 'm'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }
+                `}
+              >
+                meters
+              </button>
+              <button
+                onClick={() => setDisplayUnits({ ...displayUnits, distance: 'km' })}
+                className={`
+                  flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200
+                  ${displayUnits.distance === 'km'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }
+                `}
+              >
+                kilometers
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Divider */}
         <div className="border-t border-slate-200"></div>

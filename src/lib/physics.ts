@@ -50,3 +50,23 @@ export function calculateDisplacement(
 ): number {
   return initialVelocity * time + 0.5 * acceleration * time * time;
 }
+
+/**
+ * Converts velocity from meters per second to kilometers per hour
+ * 
+ * @param mps - Velocity in meters per second
+ * @returns Velocity in kilometers per hour
+ */
+export function mpsToKph(mps: number): number {
+  return mps * 3.6;
+}
+
+/**
+ * Converts distance from meters to kilometers
+ * 
+ * @param m - Distance in meters
+ * @returns Distance in kilometers
+ */
+export function mToKm(m: number): number {
+  return m / 1000;
+}

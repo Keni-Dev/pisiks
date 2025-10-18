@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useCanvas } from '../hooks/useCanvas';
 import { useAnimationLoop } from '../hooks/useAnimationLoop';
 import type { PhysicsState } from '../lib/physics';
@@ -13,15 +13,18 @@ interface SimulationCanvasProps {
     duration: number;  // total simulation time (s)
   };
   resetKey: number;
+  physicsState: PhysicsState;
+  onUpdatePhysics: (newState: PhysicsState) => void;
 }
 
-export default function SimulationCanvas({ isRunning, setIsRunning, simulationParams, resetKey }: SimulationCanvasProps) {
-  const [physicsState, setPhysicsState] = useState<PhysicsState>({
-    time: 0,
-    velocity: 0,
-    displacement: 0
-  });
-
+export default function SimulationCanvas({ 
+  isRunning, 
+  setIsRunning, 
+  simulationParams, 
+  resetKey, 
+  physicsState,
+  onUpdatePhysics 
+}: SimulationCanvasProps) {
   // Use a ref to avoid stale closures in the animation loop
   const physicsStateRef = useRef(physicsState);
   
@@ -32,23 +35,23 @@ export default function SimulationCanvas({ isRunning, setIsRunning, simulationPa
 
   // Reset physics state when resetKey changes
   useEffect(() => {
-    setPhysicsState({
+    onUpdatePhysics({
       time: 0,
       velocity: 0,
       displacement: 0
     });
-  }, [resetKey]);
+  }, [resetKey, onUpdatePhysics]);
 
   // Reset physics state when simulation stops
   useEffect(() => {
     if (!isRunning) {
-      setPhysicsState({
+      onUpdatePhysics({
         time: 0,
         velocity: 0,
         displacement: 0
       });
     }
-  }, [isRunning]);
+  }, [isRunning, onUpdatePhysics]);
 
   // Update function called on each frame
   const update = useCallback((deltaTime: number) => {
@@ -65,13 +68,13 @@ export default function SimulationCanvas({ isRunning, setIsRunning, simulationPa
     const newVelocity = calculateVelocity(simulationParams.u, simulationParams.a, newTime);
     const newDisplacement = calculateDisplacement(simulationParams.u, simulationParams.a, newTime);
 
-    // Update the physics state
-    setPhysicsState({
+    // Update the physics state via callback
+    onUpdatePhysics({
       time: newTime,
       velocity: newVelocity,
       displacement: newDisplacement
     });
-  }, [simulationParams, setIsRunning]);
+  }, [simulationParams, setIsRunning, onUpdatePhysics]);
 
   // Start the animation loop
   useAnimationLoop(update, isRunning);
