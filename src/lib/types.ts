@@ -8,3 +8,5 @@ export interface SimulationParams {
   height: number; // initial height for freefall (m)
   objectType: ObjectType;
 }
+
+export type GraphDataPoint = { t: number; v: number; s: number; };

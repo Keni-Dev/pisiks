@@ -3,8 +3,9 @@ import Header from './components/Header';
 import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
+import GraphModal from './components/GraphModal';
 import type { PhysicsState } from './lib/physics';
-import type { SimulationParams } from './lib/types';
+import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 import type { Preset } from './lib/presets';
 
@@ -35,6 +36,8 @@ function App() {
     minDisplacement: 0,
     maxDisplacement: 0
   });
+  const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
 
   // Calculate motion bounds whenever simulation parameters change
   useEffect(() => {
@@ -82,6 +85,11 @@ function App() {
     setPhysicsState(newState);
   }, []);
 
+  const handleSimulationEnd = useCallback((data: GraphDataPoint[]) => {
+    setGraphData(data);
+    setIsGraphModalOpen(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Header */}
@@ -98,6 +106,7 @@ function App() {
             resetKey={resetKey}
             physicsState={physicsState}
             onUpdatePhysics={handleUpdatePhysics}
+            onSimulationEnd={handleSimulationEnd}
             minDisplacement={motionBounds.minDisplacement}
             maxDisplacement={motionBounds.maxDisplacement}
             viewMode={simulationParams.viewMode}
@@ -125,6 +134,13 @@ function App() {
           />
         </div>
       </main>
+
+      {/* Graph Modal */}
+      <GraphModal
+        isOpen={isGraphModalOpen}
+        onClose={() => setIsGraphModalOpen(false)}
+        data={graphData}
+      />
     </div>
   );
 }

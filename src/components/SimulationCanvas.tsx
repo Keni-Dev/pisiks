@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 import { useCanvas } from '../hooks/useCanvas';
 import { useAnimationLoop } from '../hooks/useAnimationLoop';
 import type { PhysicsState } from '../lib/physics';
+import type { GraphDataPoint } from '../lib/types';
 import { calculateVelocity, calculateDisplacement } from '../lib/physics';
 import { drawBall, drawCar, drawRocket } from '../lib/drawing';
 
@@ -18,6 +19,7 @@ interface SimulationCanvasProps {
   resetKey: number;
   physicsState: PhysicsState;
   onUpdatePhysics: (newState: PhysicsState) => void;
+  onSimulationEnd: (data: GraphDataPoint[]) => void;
   minDisplacement: number;
   maxDisplacement: number;
   viewMode: 'horizontal' | 'vertical';
@@ -31,6 +33,7 @@ export default function SimulationCanvas({
   resetKey, 
   physicsState,
   onUpdatePhysics,
+  onSimulationEnd,
   minDisplacement,
   maxDisplacement,
   viewMode,
@@ -46,6 +49,11 @@ export default function SimulationCanvas({
   // Position history for trail effect
   const [positionHistory, setPositionHistory] = useState<{ x: number; y: number }[]>([]);
   const frameCounterRef = useRef(0);
+
+  // Data collection for graphs
+  const graphDataRef = useRef<GraphDataPoint[]>([]);
+  const lastCaptureTimeRef = useRef(0);
+  const DATA_CAPTURE_INTERVAL = 0.1; // seconds
 
   // Use a ref to avoid stale closures in the animation loop
   const physicsStateRef = useRef(physicsState);
@@ -65,6 +73,9 @@ export default function SimulationCanvas({
     // Clear position history on reset
     setPositionHistory([]);
     frameCounterRef.current = 0;
+    // Clear graph data on reset
+    graphDataRef.current = [];
+    lastCaptureTimeRef.current = 0;
   }, [resetKey, onUpdatePhysics]);
 
   // Reset physics state when simulation stops
@@ -78,6 +89,9 @@ export default function SimulationCanvas({
       // Clear position history when stopped
       setPositionHistory([]);
       frameCounterRef.current = 0;
+      // Clear graph data when stopped
+      graphDataRef.current = [];
+      lastCaptureTimeRef.current = 0;
     }
   }, [isRunning, onUpdatePhysics]);
 
@@ -149,6 +163,8 @@ export default function SimulationCanvas({
     // Stop if duration exceeded
     if (newTime >= simulationParams.duration) {
       setIsRunning(false);
+      // Send collected graph data to parent
+      onSimulationEnd(graphDataRef.current);
       return;
     }
 
@@ -162,6 +178,16 @@ export default function SimulationCanvas({
       velocity: newVelocity,
       displacement: newDisplacement
     });
+
+    // Collect data for graphs at fixed intervals
+    if (newTime - lastCaptureTimeRef.current >= DATA_CAPTURE_INTERVAL) {
+      graphDataRef.current.push({
+        t: newTime,
+        v: newVelocity,
+        s: newDisplacement
+      });
+      lastCaptureTimeRef.current = newTime;
+    }
 
     // Update position history for trail effect (every 3 frames to avoid clutter)
     frameCounterRef.current++;
@@ -186,7 +212,7 @@ export default function SimulationCanvas({
         return newHistory.slice(-50);
       });
     }
-  }, [simulationParams, setIsRunning, onUpdatePhysics, viewport, viewMode]);
+  }, [simulationParams, setIsRunning, onUpdatePhysics, onSimulationEnd, viewport, viewMode]);
 
   // Start the animation loop
   useAnimationLoop(update, isRunning);
