@@ -24,5 +24,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/components/SimulationCanvas_OPTIMIZED.tsx",
+    "src/hooks/useLocalStorage.ts",
+  ]
 }

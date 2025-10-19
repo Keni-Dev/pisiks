@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import Header from './components/Header';
 import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
@@ -10,7 +11,7 @@ import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 import type { Preset } from './lib/presets';
-import useLocalStorage from './hooks/useLocalStorage';
+// Removed localStorage persistence to avoid control sync issues
 
 // Default simulation parameters
 const DEFAULT_PARAMS: SimulationParams = {
@@ -25,7 +26,7 @@ const DEFAULT_PARAMS: SimulationParams = {
 function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [simulationParams, setSimulationParams] = useLocalStorage<SimulationParams>('motionSim_params', DEFAULT_PARAMS);
+  const [simulationParams, setSimulationParams] = useState<SimulationParams>(DEFAULT_PARAMS);
   const [physicsState, setPhysicsState] = useState<PhysicsState>({
     time: 0,
     velocity: 0,
@@ -76,17 +77,32 @@ function App() {
   }, []);
 
   const handleLoadPreset = useCallback((preset: Preset) => {
-    // Update simulation parameters with preset values
-    setSimulationParams(preset.simulationParams);
-    
-    // Reset the simulation
+    // Stop any running simulation first
     setIsRunning(false);
-    setResetKey(prev => prev + 1);
-    setPhysicsState({
-      time: 0,
-      velocity: 0,
-      displacement: 0
+    
+    // Use flushSync to ensure state updates are applied synchronously
+    flushSync(() => {
+      // Update simulation parameters with preset values
+      setSimulationParams(preset.simulationParams);
+      
+      // Immediately calculate and set motion bounds for the new preset
+      const bounds = calculateMotionBounds(
+        preset.simulationParams.u,
+        preset.simulationParams.a,
+        preset.simulationParams.duration
+      );
+      setMotionBounds(bounds);
+      
+      // Reset physics state
+      setPhysicsState({
+        time: 0,
+        velocity: 0,
+        displacement: 0
+      });
     });
+    
+    // Increment reset key after all state is flushed
+    setResetKey(prev => prev + 1);
   }, [setSimulationParams]);
 
   const handleUpdatePhysics = useCallback((newState: PhysicsState) => {
@@ -107,9 +123,9 @@ function App() {
       />
       
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4">
         {/* Simulation Area */}
-        <div className="mb-6">
+        <div className="mb-4">
           <SimulationCanvas 
             isRunning={isRunning}
             setIsRunning={setIsRunning}
@@ -126,7 +142,7 @@ function App() {
         </div>
         
         {/* Bottom Panel - Controls and Data */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ControlsPanel 
             simulationParams={simulationParams}
             setSimulationParams={setSimulationParams}

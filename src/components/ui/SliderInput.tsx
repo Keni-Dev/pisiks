@@ -38,15 +38,15 @@ export default function SliderInput({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {/* Label */}
-      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
         {label}
         {tooltip && <Tooltip content={tooltip} />}
       </label>
 
       {/* Slider and Number Input Container */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Slider */}
         <input
           type="range"
@@ -60,10 +60,10 @@ export default function SliderInput({
           aria-valuemax={max}
           aria-valuenow={value}
           aria-valuetext={`${value} ${unit}`}
-          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
+          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer
                      accent-orange-500
                      hover:bg-slate-300 transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                     focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
         />
 
         {/* Number Input with Unit */}
@@ -77,9 +77,9 @@ export default function SliderInput({
             onChange={handleNumberChange}
             aria-label={ariaLabel ? `${ariaLabel} (number input)` : `${label} (number input)`}
             className={`
-              w-20 px-3 py-1.5 text-sm text-slate-900 border rounded-md
+              w-16 px-2 py-1 text-xs text-slate-900 border rounded-md
               transition-all duration-200
-              focus:outline-none focus:ring-2 focus:ring-offset-2
+              focus:outline-none focus:ring-1 focus:ring-offset-1
               ${isOutOfBounds
                 ? 'border-red-500 focus:ring-red-500 bg-red-50'
                 : 'border-slate-300 focus:ring-orange-500 focus:border-transparent hover:border-slate-400'
@@ -87,7 +87,7 @@ export default function SliderInput({
             `}
           />
           {unit && (
-            <span className="text-sm text-slate-600 font-medium min-w-[2.5rem]">
+            <span className="text-xs text-slate-600 font-medium min-w-[2rem]">
               {unit}
             </span>
           )}
@@ -96,7 +96,7 @@ export default function SliderInput({
       
       {/* Validation Error Message */}
       {isOutOfBounds && (
-        <p className="text-xs text-red-600 mt-1" role="alert">
+        <p className="text-xs text-red-600 mt-0.5" role="alert">
           Value must be between {min} and {max}
         </p>
       )}

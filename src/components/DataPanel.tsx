@@ -38,8 +38,8 @@ const DataPanel = memo(function DataPanel({ physicsState, simulationParams, disp
   const liveRegionText = `Time: ${physicsState.time.toFixed(2)} seconds, Velocity: ${velocityValue.toFixed(2)} ${displayUnits.velocity}, Displacement: ${displacementValue.toFixed(2)} ${displayUnits.distance === 'km' ? 'kilometers' : 'meters'}`;
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6 h-full">
-      <h2 className="text-xl font-semibold text-slate-800 mb-6">Physics Data</h2>
+    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 h-full">
+      <h2 className="text-lg font-semibold text-slate-800 mb-3">Physics Data</h2>
       
       {/* Screen reader live region for announcing data changes */}
       <div 
@@ -51,7 +51,7 @@ const DataPanel = memo(function DataPanel({ physicsState, simulationParams, disp
         {liveRegionText}
       </div>
 
-      <div className="space-y-1" aria-label="Real-time physics data">
+      <div className="space-y-0.5" aria-label="Real-time physics data">
         <DataRow 
           icon={Timer}
           label="Time"
