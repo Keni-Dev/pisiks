@@ -4,6 +4,7 @@ import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
 import GraphModal from './components/GraphModal';
+import { LearningPanel } from './components/LearningPanel';
 import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
@@ -38,6 +39,7 @@ function App() {
   });
   const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
+  const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
 
   // Calculate motion bounds whenever simulation parameters change
   useEffect(() => {
@@ -93,7 +95,9 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Header */}
-      <Header />
+      <Header 
+        onToggleLearningPanel={() => setIsLearningPanelOpen(!isLearningPanelOpen)}
+      />
       
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
@@ -140,6 +144,12 @@ function App() {
         isOpen={isGraphModalOpen}
         onClose={() => setIsGraphModalOpen(false)}
         data={graphData}
+      />
+
+      {/* Learning Panel */}
+      <LearningPanel
+        isOpen={isLearningPanelOpen}
+        onClose={() => setIsLearningPanelOpen(false)}
       />
     </div>
   );

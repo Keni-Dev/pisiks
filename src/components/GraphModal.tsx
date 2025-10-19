@@ -1,6 +1,5 @@
-import { useRef } from 'react';
-import { X, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { useRef, useState } from 'react';
+import { X, Download, Loader2 } from 'lucide-react';
 import MotionChart from './MotionChart';
 import type { GraphDataPoint } from '../lib/types';
 
@@ -12,23 +11,107 @@ interface GraphModalProps {
 
 const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
   const chartsContainerRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isOpen) return null;
 
   const handleDownload = async () => {
-    if (!chartsContainerRef.current) return;
+    if (!chartsContainerRef.current || isDownloading) return;
 
+    setIsDownloading(true);
     try {
-      // Use html2canvas to capture the charts container
-      const canvas = await html2canvas(chartsContainerRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2, // Higher quality export
-        logging: false,
-        useCORS: true,
-      });
+      // Create a new canvas to draw both charts
+      const mainCanvas = document.createElement('canvas');
+      const ctx = mainCanvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
 
-      // Convert canvas to blob and download
-      canvas.toBlob((blob) => {
+      // Set canvas dimensions (adjust based on your needs)
+      const width = 1200;
+      const height = 800;
+      mainCanvas.width = width;
+      mainCanvas.height = height;
+
+      // Fill white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Get all SVG elements (Recharts renders as SVG)
+      const svgElements = chartsContainerRef.current.querySelectorAll('svg');
+      
+      if (svgElements.length === 0) {
+        throw new Error('No charts found to export');
+      }
+
+      // Function to convert SVG to image
+      const svgToImage = (svg: SVGElement): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          // Clone the SVG to avoid modifying the original
+          const clonedSvg = svg.cloneNode(true) as SVGElement;
+          
+          // Helper function to convert computed styles to RGB
+          const convertColors = (element: Element) => {
+            const computedStyle = window.getComputedStyle(element);
+            
+            // Convert color properties that might use oklch
+            ['fill', 'stroke', 'color'].forEach(prop => {
+              const value = computedStyle.getPropertyValue(prop);
+              if (value && value !== 'none' && value !== 'transparent') {
+                (element as HTMLElement).style.setProperty(prop, value);
+              }
+            });
+            
+            // Recursively process children
+            Array.from(element.children).forEach(child => convertColors(child));
+          };
+          
+          // Convert all colors in the cloned SVG
+          convertColors(clonedSvg);
+          
+          const svgData = new XMLSerializer().serializeToString(clonedSvg);
+          const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(svgBlob);
+          
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to load SVG as image'));
+          };
+          img.src = url;
+        });
+      };
+
+      // Add title
+      ctx.fillStyle = '#1f2937';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Motion Graphs', width / 2, 50);
+
+      // Draw each chart
+      let yOffset = 100;
+      for (let i = 0; i < svgElements.length; i++) {
+        const svg = svgElements[i] as SVGElement;
+        const img = await svgToImage(svg);
+        
+        // Add chart title
+        ctx.fillStyle = '#374151';
+        ctx.font = '600 20px sans-serif';
+        ctx.textAlign = 'left';
+        const title = i === 0 ? 'Velocity vs Time' : 'Displacement vs Time';
+        ctx.fillText(title, 60, yOffset);
+        
+        // Draw the chart
+        ctx.drawImage(img, 50, yOffset + 10, width - 100, 300);
+        yOffset += 350;
+      }
+
+      // Convert to blob and download
+      mainCanvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
@@ -40,8 +123,12 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
           URL.revokeObjectURL(url);
         }
       }, 'image/png');
+
     } catch (error) {
       console.error('Error generating PNG:', error);
+      alert(`Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -61,10 +148,20 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
           <div className="flex gap-3">
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download size={18} />
-              Download as PNG
+              {isDownloading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download size={18} />
+                  Download as PNG
+                </>
+              )}
             </button>
             <button
               onClick={onClose}
