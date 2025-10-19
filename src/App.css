@@ -1,4 +1,35 @@
-.app-container {
-  min-height: 100vh;
-  padding: 2rem;
+/* Responsive canvas wrapper */
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Make canvas responsive */
+.canvas-wrapper canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .canvas-wrapper {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .canvas-wrapper canvas {
+    max-width: none;
+    width: 800px; /* Maintain canvas width on mobile, allow horizontal scroll */
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .canvas-wrapper canvas {
+    width: 100%;
+    max-width: 800px;
+  }
 }

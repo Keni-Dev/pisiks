@@ -485,13 +485,15 @@ const SimulationCanvas = memo(function SimulationCanvas({
   const canvasRef = useCanvas(draw);
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6">
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={400}
-        className="border border-slate-300 rounded-md mx-auto block"
-      />
+    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 sm:p-6">
+      <div className="overflow-x-auto">
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={400}
+          className="border border-slate-300 rounded-md mx-auto block min-w-[600px] sm:min-w-0"
+        />
+      </div>
     </div>
   );
 });

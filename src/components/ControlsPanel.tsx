@@ -185,195 +185,203 @@ const ControlsPanel = memo(function ControlsPanel({
           </button>
         </div>
 
-        
-        {/* Quick Presets Section - Moved Up */}
-        <CollapsibleSection title="Quick Presets" defaultOpen={true}>
-          <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Quick preset scenarios">
-            {presets.map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => {
-                  handlePresetClick(preset);
-                  onReset();
-                }}
-                aria-pressed={activePresetName === preset.name}
-                aria-label={`Load preset: ${preset.name}`}
-                className={`
-                  px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200
-                  ${activePresetName === preset.name
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                  }
-                `}
-              >
-                {preset.name}
-              </button>
-            ))}
-          </div>
-        </CollapsibleSection>
-
-        {/* Main Parameters */}
-        <CollapsibleSection title="Parameters" defaultOpen={true}>
+        {/* Responsive Grid Layout for Parameters and Presets */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+          {/* Left Column: Parameters and Units */}
           <div className="space-y-3">
-            {/* Motion Type & Object in compact row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-700 mb-1.5 block">Motion Type</label>
-                <select
-                  value={motionType}
-                  onChange={(e) => handleMotionTypeChange(e.target.value)}
-                  className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  aria-label="Select motion type"
-                >
-                  {motionTypeOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+            {/* Main Parameters */}
+            <CollapsibleSection title="Parameters" defaultOpen={true}>
+              <div className="space-y-3">
+                {/* Motion Type & Object in compact row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 mb-1.5 block">Motion Type</label>
+                    <select
+                      value={motionType}
+                      onChange={(e) => handleMotionTypeChange(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      aria-label="Select motion type"
+                    >
+                      {motionTypeOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 mb-1.5 block">Object</label>
+                    <select
+                      value={simulationParams.objectType}
+                      onChange={(e) => handleObjectChange(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      aria-label="Select object type"
+                    >
+                      {objectOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Compact Sliders - Better organized on large screens */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <SliderInput
+                    label="Initial Velocity (u)"
+                    value={simulationParams.u}
+                    onChange={handleVelocityChange}
+                    min={-100}
+                    max={100}
+                    step={1}
+                    unit="m/s"
+                    tooltip="The starting speed of the object"
+                    ariaLabel="Initial velocity in meters per second"
+                  />
+
+                  <div className={isAccelerationDisabled ? 'opacity-50 pointer-events-none' : ''}>
+                    <SliderInput
+                      label="Acceleration (a)"
+                      value={simulationParams.a}
+                      onChange={handleAccelerationChange}
+                      min={-20}
+                      max={20}
+                      step={0.1}
+                      unit="m/s²"
+                      tooltip="Rate of change of velocity"
+                      ariaLabel="Acceleration in meters per second squared"
+                    />
+                  </div>
+
+                  <SliderInput
+                    label="Duration (t)"
+                    value={simulationParams.duration}
+                    onChange={handleDurationChange}
+                    min={0.1}
+                    max={60}
+                    step={0.1}
+                    unit="s"
+                    tooltip="How long the simulation runs"
+                    ariaLabel="Simulation duration in seconds"
+                  />
+
+                  {motionType === 'freefall' && (
+                    <SliderInput
+                      label="Initial Height (h)"
+                      value={simulationParams.height}
+                      onChange={handleHeightChange}
+                      min={0}
+                      max={200}
+                      step={1}
+                      unit="m"
+                      tooltip="Starting height for the fall"
+                      ariaLabel="Initial height in meters"
+                    />
+                  )}
+                </div>
               </div>
-              
-              <div>
-                <label className="text-xs font-medium text-slate-700 mb-1.5 block">Object</label>
-                <select
-                  value={simulationParams.objectType}
-                  onChange={(e) => handleObjectChange(e.target.value)}
-                  className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  aria-label="Select object type"
-                >
-                  {objectOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+            </CollapsibleSection>
+
+            {/* Display Units - Collapsible */}
+            <CollapsibleSection title="Display Units" defaultOpen={false}>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-600 mb-1.5 block">Velocity</label>
+                  <div className="flex gap-1" role="group" aria-label="Velocity unit selector">
+                    <button
+                      onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'm/s' })}
+                      aria-pressed={displayUnits.velocity === 'm/s'}
+                      aria-label="m/s"
+                      className={`
+                        flex-1 px-2 py-1 text-xs font-medium rounded transition-all
+                        ${displayUnits.velocity === 'm/s'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }
+                      `}
+                    >
+                      m/s
+                    </button>
+                    <button
+                      onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'km/h' })}
+                      aria-pressed={displayUnits.velocity === 'km/h'}
+                      aria-label="km/h"
+                      className={`
+                        flex-1 px-2 py-1 text-xs font-medium rounded transition-all
+                        ${displayUnits.velocity === 'km/h'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }
+                      `}
+                    >
+                      km/h
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-600 mb-1.5 block">Distance</label>
+                  <div className="flex gap-1" role="group" aria-label="Distance unit selector">
+                    <button
+                      onClick={() => setDisplayUnits({ ...displayUnits, distance: 'm' })}
+                      aria-pressed={displayUnits.distance === 'm'}
+                      aria-label="meters"
+                      className={`
+                        flex-1 px-2 py-1 text-xs font-medium rounded transition-all
+                        ${displayUnits.distance === 'm'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }
+                      `}
+                    >
+                      m
+                    </button>
+                    <button
+                      onClick={() => setDisplayUnits({ ...displayUnits, distance: 'km' })}
+                      aria-pressed={displayUnits.distance === 'km'}
+                      aria-label="kilometers"
+                      className={`
+                        flex-1 px-2 py-1 text-xs font-medium rounded transition-all
+                        ${displayUnits.distance === 'km'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }
+                      `}
+                    >
+                      km
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Compact Sliders */}
-            <SliderInput
-              label="Initial Velocity (u)"
-              value={simulationParams.u}
-              onChange={handleVelocityChange}
-              min={-100}
-              max={100}
-              step={1}
-              unit="m/s"
-              tooltip="The starting speed of the object"
-              ariaLabel="Initial velocity in meters per second"
-            />
-
-            <div className={isAccelerationDisabled ? 'opacity-50 pointer-events-none' : ''}>
-              <SliderInput
-                label="Acceleration (a)"
-                value={simulationParams.a}
-                onChange={handleAccelerationChange}
-                min={-20}
-                max={20}
-                step={0.1}
-                unit="m/s²"
-                tooltip="Rate of change of velocity"
-                ariaLabel="Acceleration in meters per second squared"
-              />
-            </div>
-
-            <SliderInput
-              label="Duration (t)"
-              value={simulationParams.duration}
-              onChange={handleDurationChange}
-              min={0.1}
-              max={60}
-              step={0.1}
-              unit="s"
-              tooltip="How long the simulation runs"
-              ariaLabel="Simulation duration in seconds"
-            />
-
-            {motionType === 'freefall' && (
-              <SliderInput
-                label="Initial Height (h)"
-                value={simulationParams.height}
-                onChange={handleHeightChange}
-                min={0}
-                max={200}
-                step={1}
-                unit="m"
-                tooltip="Starting height for the fall"
-                ariaLabel="Initial height in meters"
-              />
-            )}
+            </CollapsibleSection>
           </div>
-        </CollapsibleSection>
 
-        {/* Display Units - Collapsible */}
-        <CollapsibleSection title="Display Units" defaultOpen={false}>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-600 w-16">Velocity</label>
-              <div className="flex gap-1 flex-1" role="group" aria-label="Velocity unit selector">
-                <button
-                  onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'm/s' })}
-                  aria-pressed={displayUnits.velocity === 'm/s'}
-                  aria-label="m/s"
-                  className={`
-                    flex-1 px-2 py-1 text-xs font-medium rounded transition-all
-                    ${displayUnits.velocity === 'm/s'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }
-                  `}
-                >
-                  m/s
-                </button>
-                <button
-                  onClick={() => setDisplayUnits({ ...displayUnits, velocity: 'km/h' })}
-                  aria-pressed={displayUnits.velocity === 'km/h'}
-                  aria-label="km/h"
-                  className={`
-                    flex-1 px-2 py-1 text-xs font-medium rounded transition-all
-                    ${displayUnits.velocity === 'km/h'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }
-                  `}
-                >
-                  km/h
-                </button>
+          {/* Right Column: Quick Presets (side by side on large screens) */}
+          <div className="lg:min-w-[200px]">
+            <CollapsibleSection title="Quick Presets" defaultOpen={true}>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5" role="group" aria-label="Quick preset scenarios">
+                {presets.map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => {
+                      handlePresetClick(preset);
+                      onReset();
+                    }}
+                    aria-pressed={activePresetName === preset.name}
+                    aria-label={`Load preset: ${preset.name}`}
+                    className={`
+                      px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap
+                      ${activePresetName === preset.name
+                        ? 'bg-orange-500 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                      }
+                    `}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-600 w-16">Distance</label>
-              <div className="flex gap-1 flex-1" role="group" aria-label="Distance unit selector">
-                <button
-                  onClick={() => setDisplayUnits({ ...displayUnits, distance: 'm' })}
-                  aria-pressed={displayUnits.distance === 'm'}
-                  aria-label="meters"
-                  className={`
-                    flex-1 px-2 py-1 text-xs font-medium rounded transition-all
-                    ${displayUnits.distance === 'm'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }
-                  `}
-                >
-                  m
-                </button>
-                <button
-                  onClick={() => setDisplayUnits({ ...displayUnits, distance: 'km' })}
-                  aria-pressed={displayUnits.distance === 'km'}
-                  aria-label="kilometers"
-                  className={`
-                    flex-1 px-2 py-1 text-xs font-medium rounded transition-all
-                    ${displayUnits.distance === 'km'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }
-                  `}
-                >
-                  km
-                </button>
-              </div>
-            </div>
+            </CollapsibleSection>
           </div>
-        </CollapsibleSection>
-
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import Header from './components/Header';
+import Header, { type LayoutMode } from './components/Header';
 import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
+import CompactDataDisplay from './components/CompactDataDisplay';
 import GraphModal from './components/GraphModal';
 import HelpModal from './components/HelpModal';
 import { LearningPanel } from './components/LearningPanel';
@@ -11,6 +12,7 @@ import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 import type { Preset } from './lib/presets';
+import useLocalStorage from './hooks/useLocalStorage';
 // Removed localStorage persistence to avoid control sync issues
 
 // Default simulation parameters
@@ -47,6 +49,8 @@ function App() {
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  // Layout mode with localStorage persistence - default to side-by-side for mobile-friendly experience
+  const [layoutMode, setLayoutMode] = useLocalStorage<LayoutMode>('physics-layout-mode', 'side-by-side');
 
   // Calculate motion bounds whenever simulation parameters change
   useEffect(() => {
@@ -120,46 +124,141 @@ function App() {
       <Header 
         onToggleLearningPanel={() => setIsLearningPanelOpen(!isLearningPanelOpen)}
         onToggleHelpModal={() => setIsHelpModalOpen(!isHelpModalOpen)}
+        layoutMode={layoutMode}
+        onLayoutChange={setLayoutMode}
       />
       
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4">
-        {/* Simulation Area */}
-        <div className="mb-4">
-          <SimulationCanvas 
-            isRunning={isRunning}
-            setIsRunning={setIsRunning}
-            simulationParams={simulationParams}
-            resetKey={resetKey}
-            physicsState={physicsState}
-            onUpdatePhysics={handleUpdatePhysics}
-            onSimulationEnd={handleSimulationEnd}
-            minDisplacement={motionBounds.minDisplacement}
-            maxDisplacement={motionBounds.maxDisplacement}
-            viewMode={simulationParams.viewMode}
-            objectType={simulationParams.objectType}
-          />
-        </div>
-        
-        {/* Bottom Panel - Controls and Data */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ControlsPanel 
-            simulationParams={simulationParams}
-            setSimulationParams={setSimulationParams}
-            isRunning={isRunning}
-            onStart={handleStart}
-            onPause={handlePause}
-            onReset={handleReset}
-            onLoadPreset={handleLoadPreset}
-            displayUnits={displayUnits}
-            setDisplayUnits={setDisplayUnits}
-          />
-          <DataPanel 
-            physicsState={physicsState}
-            simulationParams={simulationParams}
-            displayUnits={displayUnits}
-          />
-        </div>
+        {/* CLASSIC LAYOUT - Traditional bottom layout */}
+        {layoutMode === 'classic' && (
+          <>
+            <div className="mb-4">
+              <SimulationCanvas 
+                isRunning={isRunning}
+                setIsRunning={setIsRunning}
+                simulationParams={simulationParams}
+                resetKey={resetKey}
+                physicsState={physicsState}
+                onUpdatePhysics={handleUpdatePhysics}
+                onSimulationEnd={handleSimulationEnd}
+                minDisplacement={motionBounds.minDisplacement}
+                maxDisplacement={motionBounds.maxDisplacement}
+                viewMode={simulationParams.viewMode}
+                objectType={simulationParams.objectType}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ControlsPanel 
+                simulationParams={simulationParams}
+                setSimulationParams={setSimulationParams}
+                isRunning={isRunning}
+                onStart={handleStart}
+                onPause={handlePause}
+                onReset={handleReset}
+                onLoadPreset={handleLoadPreset}
+                displayUnits={displayUnits}
+                setDisplayUnits={setDisplayUnits}
+              />
+              <DataPanel 
+                physicsState={physicsState}
+                simulationParams={simulationParams}
+                displayUnits={displayUnits}
+              />
+            </div>
+          </>
+        )}
+
+        {/* SIDE-BY-SIDE LAYOUT - Canvas and data side by side (mobile-friendly) */}
+        {layoutMode === 'side-by-side' && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 mb-4">
+              <SimulationCanvas 
+                isRunning={isRunning}
+                setIsRunning={setIsRunning}
+                simulationParams={simulationParams}
+                resetKey={resetKey}
+                physicsState={physicsState}
+                onUpdatePhysics={handleUpdatePhysics}
+                onSimulationEnd={handleSimulationEnd}
+                minDisplacement={motionBounds.minDisplacement}
+                maxDisplacement={motionBounds.maxDisplacement}
+                viewMode={simulationParams.viewMode}
+                objectType={simulationParams.objectType}
+              />
+              
+              {/* Compact data display on the side or bottom on mobile */}
+              <div className="lg:h-[400px]">
+                <CompactDataDisplay 
+                  physicsState={physicsState}
+                  simulationParams={simulationParams}
+                  displayUnits={displayUnits}
+                  variant="side"
+                />
+              </div>
+            </div>
+            
+            {/* Centered controls panel with max width */}
+            <div className="max-w-4xl mx-auto">
+              <ControlsPanel 
+                simulationParams={simulationParams}
+                setSimulationParams={setSimulationParams}
+                isRunning={isRunning}
+                onStart={handleStart}
+                onPause={handlePause}
+                onReset={handleReset}
+                onLoadPreset={handleLoadPreset}
+                displayUnits={displayUnits}
+                setDisplayUnits={setDisplayUnits}
+              />
+            </div>
+          </>
+        )}
+
+        {/* OVERLAY LAYOUT - Data overlaid on canvas */}
+        {layoutMode === 'overlay' && (
+          <>
+            <div className="mb-4 relative">
+              <SimulationCanvas 
+                isRunning={isRunning}
+                setIsRunning={setIsRunning}
+                simulationParams={simulationParams}
+                resetKey={resetKey}
+                physicsState={physicsState}
+                onUpdatePhysics={handleUpdatePhysics}
+                onSimulationEnd={handleSimulationEnd}
+                minDisplacement={motionBounds.minDisplacement}
+                maxDisplacement={motionBounds.maxDisplacement}
+                viewMode={simulationParams.viewMode}
+                objectType={simulationParams.objectType}
+              />
+              
+              {/* Overlay data display */}
+              <CompactDataDisplay 
+                physicsState={physicsState}
+                simulationParams={simulationParams}
+                displayUnits={displayUnits}
+                variant="overlay"
+              />
+            </div>
+            
+            {/* Centered controls panel with max width */}
+            <div className="max-w-4xl mx-auto">
+              <ControlsPanel 
+                simulationParams={simulationParams}
+                setSimulationParams={setSimulationParams}
+                isRunning={isRunning}
+                onStart={handleStart}
+                onPause={handlePause}
+                onReset={handleReset}
+                onLoadPreset={handleLoadPreset}
+                displayUnits={displayUnits}
+                setDisplayUnits={setDisplayUnits}
+              />
+            </div>
+          </>
+        )}
       </main>
 
       {/* Graph Modal */}
