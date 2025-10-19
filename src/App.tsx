@@ -6,6 +6,7 @@ import DataPanel from './components/DataPanel';
 import type { PhysicsState } from './lib/physics';
 import type { SimulationParams } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
+import type { Preset } from './lib/presets';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
@@ -63,6 +64,20 @@ function App() {
     });
   };
 
+  const handleLoadPreset = (preset: Preset) => {
+    // Update simulation parameters with preset values
+    setSimulationParams(preset.simulationParams);
+    
+    // Reset the simulation
+    setIsRunning(false);
+    setResetKey(prev => prev + 1);
+    setPhysicsState({
+      time: 0,
+      velocity: 0,
+      displacement: 0
+    });
+  };
+
   const handleUpdatePhysics = useCallback((newState: PhysicsState) => {
     setPhysicsState(newState);
   }, []);
@@ -99,6 +114,7 @@ function App() {
             onStart={handleStart}
             onPause={handlePause}
             onReset={handleReset}
+            onLoadPreset={handleLoadPreset}
             displayUnits={displayUnits}
             setDisplayUnits={setDisplayUnits}
           />

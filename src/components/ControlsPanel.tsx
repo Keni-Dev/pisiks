@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Play, Pause, RefreshCw } from 'lucide-react';
 import SliderInput from './ui/SliderInput';
 import RadioGroup from './ui/RadioGroup';
+import { presets, type Preset } from '../lib/presets';
 
 interface ControlsPanelProps {
   simulationParams: {
@@ -18,6 +19,7 @@ interface ControlsPanelProps {
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
+  onLoadPreset: (preset: Preset) => void;
   displayUnits: {
     velocity: 'm/s' | 'km/h';
     distance: 'm' | 'km';
@@ -34,10 +36,12 @@ export default function ControlsPanel({
   onStart,
   onPause,
   onReset,
+  onLoadPreset,
   displayUnits,
   setDisplayUnits
 }: ControlsPanelProps) {
   const [motionType, setMotionType] = useState<MotionType>('accelerated');
+  const [activePresetName, setActivePresetName] = useState<string | null>(null);
 
   const motionTypeOptions = [
     { value: 'uniform', label: 'Uniform' },
@@ -54,6 +58,7 @@ export default function ControlsPanel({
   const handleMotionTypeChange = (value: string) => {
     const newMotionType = value as MotionType;
     setMotionType(newMotionType);
+    setActivePresetName(null); // Clear active preset on manual change
 
     // Update acceleration and view mode based on motion type
     if (newMotionType === 'uniform') {
@@ -69,25 +74,55 @@ export default function ControlsPanel({
   };
 
   const handleVelocityChange = (value: number) => {
+    setActivePresetName(null); // Clear active preset on manual change
     setSimulationParams({ ...simulationParams, u: value });
   };
 
   const handleAccelerationChange = (value: number) => {
+    setActivePresetName(null); // Clear active preset on manual change
     setSimulationParams({ ...simulationParams, a: value });
   };
 
   const handleDurationChange = (value: number) => {
+    setActivePresetName(null); // Clear active preset on manual change
     setSimulationParams({ ...simulationParams, duration: value });
   };
 
   const handleHeightChange = (value: number) => {
+    setActivePresetName(null); // Clear active preset on manual change
     setSimulationParams({ ...simulationParams, height: value });
   };
 
   const handleObjectChange = (value: string) => {
+    setActivePresetName(null); // Clear active preset on manual change
     const obj = value as 'ball' | 'car' | 'rocket';
     setSimulationParams({ ...simulationParams, objectType: obj });
   };
+
+  const handlePresetClick = (preset: Preset) => {
+    setActivePresetName(preset.name);
+    onLoadPreset(preset);
+    
+    // Update motion type based on preset parameters
+    if (preset.simulationParams.a === 0) {
+      setMotionType('uniform');
+    } else if (Math.abs(preset.simulationParams.a - 9.8) < 0.1 || Math.abs(preset.simulationParams.a + 9.8) < 0.1) {
+      setMotionType('freefall');
+    } else {
+      setMotionType('accelerated');
+    }
+  };
+
+  // Sync motion type with simulation params
+  useEffect(() => {
+    if (simulationParams.a === 0) {
+      setMotionType('uniform');
+    } else if (Math.abs(simulationParams.a - 9.8) < 0.1 || Math.abs(simulationParams.a + 9.8) < 0.1) {
+      setMotionType('freefall');
+    } else {
+      setMotionType('accelerated');
+    }
+  }, [simulationParams.a]);
 
   const isAccelerationDisabled = motionType === 'uniform' || motionType === 'freefall';
 
@@ -235,6 +270,31 @@ export default function ControlsPanel({
                 kilometers
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-200"></div>
+
+        {/* Quick Presets Section */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-slate-700">Quick Presets</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {presets.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => handlePresetClick(preset)}
+                className={`
+                  px-3 py-2 text-xs font-medium rounded-md transition-all duration-200
+                  ${activePresetName === preset.name
+                    ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-300'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm border border-slate-200'
+                  }
+                `}
+              >
+                {preset.name}
+              </button>
+            ))}
           </div>
         </div>
 
