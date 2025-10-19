@@ -4,17 +4,19 @@ import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
 import type { PhysicsState } from './lib/physics';
+import type { SimulationParams } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [simulationParams, setSimulationParams] = useState({
+  const [simulationParams, setSimulationParams] = useState<SimulationParams>({
     u: 10,  // initial velocity (m/s)
     a: 2,   // acceleration (m/s²)
     duration: 10,  // total simulation time (s)
-    viewMode: 'horizontal' as 'horizontal' | 'vertical',
-    height: 50  // initial height for freefall (m)
+    viewMode: 'horizontal',
+    height: 50,  // initial height for freefall (m)
+    objectType: 'ball'
   });
   const [physicsState, setPhysicsState] = useState<PhysicsState>({
     time: 0,
@@ -84,6 +86,7 @@ function App() {
             minDisplacement={motionBounds.minDisplacement}
             maxDisplacement={motionBounds.maxDisplacement}
             viewMode={simulationParams.viewMode}
+            objectType={simulationParams.objectType}
           />
         </div>
         

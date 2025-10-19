@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Play, Pause, RefreshCw } from 'lucide-react';
 import SliderInput from './ui/SliderInput';
 import RadioGroup from './ui/RadioGroup';
@@ -10,8 +11,9 @@ interface ControlsPanelProps {
     duration: number;
     viewMode: 'horizontal' | 'vertical';
     height: number;
+    objectType: 'ball' | 'car' | 'rocket';
   };
-  setSimulationParams: (params: { u: number; a: number; duration: number; viewMode: 'horizontal' | 'vertical'; height: number }) => void;
+  setSimulationParams: Dispatch<SetStateAction<{ u: number; a: number; duration: number; viewMode: 'horizontal' | 'vertical'; height: number; objectType: 'ball' | 'car' | 'rocket' }>>;
   isRunning: boolean;
   onStart: () => void;
   onPause: () => void;
@@ -43,18 +45,26 @@ export default function ControlsPanel({
     { value: 'freefall', label: 'Free Fall' }
   ];
 
+  const objectOptions = [
+    { value: 'ball', label: 'Ball' },
+    { value: 'car', label: 'Car' },
+    { value: 'rocket', label: 'Rocket' }
+  ];
+
   const handleMotionTypeChange = (value: string) => {
     const newMotionType = value as MotionType;
     setMotionType(newMotionType);
 
     // Update acceleration and view mode based on motion type
     if (newMotionType === 'uniform') {
-      setSimulationParams({ ...simulationParams, a: 0, viewMode: 'horizontal' });
+  // suggest car for uniform motion
+  setSimulationParams({ ...simulationParams, a: 0, viewMode: 'horizontal', objectType: simulationParams.objectType || 'car' });
     } else if (newMotionType === 'freefall') {
       // For freefall, acceleration is negative (downward) and initial velocity should be 0 or negative
-      setSimulationParams({ ...simulationParams, a: -9.8, u: 0, viewMode: 'vertical' });
+  // suggest ball for freefall
+  setSimulationParams({ ...simulationParams, a: -9.8, u: 0, viewMode: 'vertical', objectType: simulationParams.objectType || 'ball' });
     } else {
-      setSimulationParams({ ...simulationParams, viewMode: 'horizontal' });
+  setSimulationParams({ ...simulationParams, viewMode: 'horizontal' });
     }
   };
 
@@ -74,6 +84,11 @@ export default function ControlsPanel({
     setSimulationParams({ ...simulationParams, height: value });
   };
 
+  const handleObjectChange = (value: string) => {
+    const obj = value as 'ball' | 'car' | 'rocket';
+    setSimulationParams({ ...simulationParams, objectType: obj });
+  };
+
   const isAccelerationDisabled = motionType === 'uniform' || motionType === 'freefall';
 
   return (
@@ -88,6 +103,19 @@ export default function ControlsPanel({
           selectedValue={motionType}
           onChange={handleMotionTypeChange}
         />
+
+        {/* Object Selector */}
+        <div>
+          <label className="text-sm font-medium text-slate-700">Object</label>
+          <div className="mt-2">
+            <RadioGroup
+              label="Object"
+              options={objectOptions}
+              selectedValue={simulationParams.objectType}
+              onChange={handleObjectChange}
+            />
+          </div>
+        </div>
 
         {/* Divider */}
         <div className="border-t border-slate-200"></div>

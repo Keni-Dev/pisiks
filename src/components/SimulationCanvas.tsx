@@ -3,6 +3,7 @@ import { useCanvas } from '../hooks/useCanvas';
 import { useAnimationLoop } from '../hooks/useAnimationLoop';
 import type { PhysicsState } from '../lib/physics';
 import { calculateVelocity, calculateDisplacement } from '../lib/physics';
+import { drawBall, drawCar, drawRocket } from '../lib/drawing';
 
 interface SimulationCanvasProps {
   isRunning: boolean;
@@ -12,6 +13,7 @@ interface SimulationCanvasProps {
     a: number;  // acceleration (m/s²)
     duration: number;  // total simulation time (s)
     height: number;  // initial height for freefall (m)
+  objectType: 'ball' | 'car' | 'rocket';
   };
   resetKey: number;
   physicsState: PhysicsState;
@@ -19,6 +21,7 @@ interface SimulationCanvasProps {
   minDisplacement: number;
   maxDisplacement: number;
   viewMode: 'horizontal' | 'vertical';
+  objectType?: 'ball' | 'car' | 'rocket';
 }
 
 export default function SimulationCanvas({ 
@@ -30,7 +33,8 @@ export default function SimulationCanvas({
   onUpdatePhysics,
   minDisplacement,
   maxDisplacement,
-  viewMode
+  viewMode,
+  objectType
 }: SimulationCanvasProps) {
   // Viewport state for zoom and pan
   const [viewport, setViewport] = useState({
@@ -38,6 +42,10 @@ export default function SimulationCanvas({
     originX: 50,    // x position of physics origin (0,0) in pixels
     originY: 200    // y position of physics origin (0,0) in pixels
   });
+
+  // Position history for trail effect
+  const [positionHistory, setPositionHistory] = useState<{ x: number; y: number }[]>([]);
+  const frameCounterRef = useRef(0);
 
   // Use a ref to avoid stale closures in the animation loop
   const physicsStateRef = useRef(physicsState);
@@ -54,6 +62,9 @@ export default function SimulationCanvas({
       velocity: 0,
       displacement: 0
     });
+    // Clear position history on reset
+    setPositionHistory([]);
+    frameCounterRef.current = 0;
   }, [resetKey, onUpdatePhysics]);
 
   // Reset physics state when simulation stops
@@ -64,6 +75,9 @@ export default function SimulationCanvas({
         velocity: 0,
         displacement: 0
       });
+      // Clear position history when stopped
+      setPositionHistory([]);
+      frameCounterRef.current = 0;
     }
   }, [isRunning, onUpdatePhysics]);
 
@@ -148,7 +162,31 @@ export default function SimulationCanvas({
       velocity: newVelocity,
       displacement: newDisplacement
     });
-  }, [simulationParams, setIsRunning, onUpdatePhysics]);
+
+    // Update position history for trail effect (every 3 frames to avoid clutter)
+    frameCounterRef.current++;
+    if (frameCounterRef.current % 3 === 0) {
+      // Calculate screen position for trail
+      let trailX: number;
+      let trailY: number;
+
+      if (viewMode === 'horizontal') {
+        trailX = viewport.originX + newDisplacement * viewport.scale;
+        trailY = viewport.originY;
+      } else {
+        const currentHeight = simulationParams.height + newDisplacement;
+        trailX = 80 + 30; // offset from building edge
+        const groundY = 400 - 40; // canvas height - ground offset
+        trailY = groundY - (currentHeight * viewport.scale);
+      }
+
+      setPositionHistory((prev) => {
+        const newHistory = [...prev, { x: trailX, y: trailY }];
+        // Limit to last 50 positions for performance
+        return newHistory.slice(-50);
+      });
+    }
+  }, [simulationParams, setIsRunning, onUpdatePhysics, viewport, viewMode]);
 
   // Start the animation loop
   useAnimationLoop(update, isRunning);
@@ -337,7 +375,22 @@ export default function SimulationCanvas({
     // Draw distance markers
     drawMarkers(viewport, viewMode);
 
-    // Calculate ball's screen position using viewport transformation
+    // Draw position trail (before the main object)
+    if (positionHistory.length > 0) {
+      positionHistory.forEach((pos, index) => {
+        // Calculate opacity fade: older positions are more transparent
+        const age = positionHistory.length - index;
+        const opacity = Math.max(0.05, 1 - (age / positionHistory.length));
+        
+        // Draw trail dot
+        ctx.fillStyle = `rgba(100, 100, 255, ${opacity * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Calculate object's screen position using viewport transformation
     let screenX: number;
     let screenY: number;
     
@@ -345,31 +398,73 @@ export default function SimulationCanvas({
       screenX = viewport.originX + physicsState.displacement * viewport.scale;
       screenY = viewport.originY;
     } else {
-      // Vertical mode - ball starts at initial height and falls downward
+      // Vertical mode - object starts at initial height and falls downward
       // Initial height is stored in simulationParams.height
-      // Displacement is negative as ball falls, so actual height = initialHeight + displacement
+      // Displacement is negative as object falls, so actual height = initialHeight + displacement
       const currentHeight = simulationParams.height + physicsState.displacement;
       
       screenX = 80 + 30; // offset from building edge
-      // We need to position the ball based on absolute height from ground
+      // We need to position the object based on absolute height from ground
       // Ground is at canvas bottom, so we measure from there
       const groundY = canvas.height - 40; // Ground position
       screenY = groundY - (currentHeight * viewport.scale);
     }
 
-    // Draw the ball at its current position
-    const radius = 15; // 30px diameter = 15px radius
+    // Calculate velocity-based scaling
+    // Define a reasonable max velocity for scaling purposes (e.g., 50 m/s)
+    const MAX_VELOCITY = 50;
+    const velocityMagnitude = Math.abs(physicsState.velocity);
+    const sizeScale = 1 + Math.min(velocityMagnitude / MAX_VELOCITY, 1) * 0.3;
 
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = '#FB923C'; // Orange color (Tailwind orange-400)
-    ctx.fill();
-    
-    // Add a stroke to make the ball more visible
-    ctx.strokeStyle = '#EA580C';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }, [physicsState, viewport, minDisplacement, maxDisplacement, viewMode, simulationParams.height]);
+    // Draw the object at its current position using the selected objectType
+    const drawType = objectType ?? 'ball';
+    const objX = screenX;
+    const objY = screenY;
+
+    // Calculate rotation for rocket based on velocity direction
+    let rotation = 0;
+    if (drawType === 'rocket') {
+      if (viewMode === 'horizontal') {
+        // Horizontal: rocket points in direction of motion
+        // velocity > 0 (moving right): rotate 90° (π/2)
+        // velocity < 0 (moving left): rotate -90° (-π/2)
+        // velocity = 0: point up (0°)
+        if (physicsState.velocity > 0.1) {
+          rotation = Math.PI / 2; // Point right
+        } else if (physicsState.velocity < -0.1) {
+          rotation = -Math.PI / 2; // Point left
+        }
+      } else {
+        // Vertical: rocket points in direction of motion (up or down)
+        // Note: In freefall, negative velocity means falling (downward motion)
+        // Positive velocity would be upward motion
+        if (physicsState.velocity < -0.1) {
+          rotation = Math.PI; // Point down (falling)
+        } else if (physicsState.velocity > 0.1) {
+          rotation = 0; // Point up (moving upward)
+        }
+      }
+    }
+
+    // Use switch statement to call appropriate drawing function with velocity scaling
+    switch (drawType) {
+      case 'ball':
+        drawBall(ctx, objX, objY, 12 * sizeScale, '#ff6b6b');
+        break;
+      
+      case 'car':
+        drawCar(ctx, objX, objY, 28 * sizeScale, 14 * sizeScale, '#4dabf7');
+        break;
+      
+      case 'rocket':
+        drawRocket(ctx, objX, objY, 20 * sizeScale, 32 * sizeScale, '#ffd43b', rotation);
+        break;
+      
+      default:
+        // Fallback to ball if unknown type
+        drawBall(ctx, objX, objY, 12 * sizeScale, '#ff6b6b');
+    }
+  }, [physicsState, viewport, minDisplacement, maxDisplacement, viewMode, simulationParams.height, objectType, positionHistory]);
 
   const canvasRef = useCanvas(draw);
 
