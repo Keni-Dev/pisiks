@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { X, Download, Loader2 } from 'lucide-react';
+import { X, Download, Loader2, FileDown } from 'lucide-react';
 import MotionChart from './MotionChart';
 import type { GraphDataPoint } from '../lib/types';
+import { exportDataAsCsv } from '../lib/utils';
 
 interface GraphModalProps {
   isOpen: boolean;
@@ -14,6 +15,12 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleDownloadCsv = () => {
+    const timestamp = Date.now();
+    const filename = `motion_data_${timestamp}.csv`;
+    exportDataAsCsv(data, filename);
+  };
 
   const handleDownload = async () => {
     if (!chartsContainerRef.current || isDownloading) return;
@@ -146,6 +153,13 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">Motion Graphs</h2>
           <div className="flex gap-3">
+            <button
+              onClick={handleDownloadCsv}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <FileDown size={18} />
+              Download as CSV
+            </button>
             <button
               onClick={handleDownload}
               disabled={isDownloading}
