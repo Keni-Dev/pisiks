@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Timer, Wind, Ruler, Gauge } from 'lucide-react';
 import DataRow from './ui/DataRow';
 import type { PhysicsState } from '../lib/physics';
@@ -16,7 +17,7 @@ interface DataPanelProps {
   };
 }
 
-export default function DataPanel({ physicsState, simulationParams, displayUnits }: DataPanelProps) {
+const DataPanel = memo(function DataPanel({ physicsState, simulationParams, displayUnits }: DataPanelProps) {
   // Calculate converted values for velocity
   const velocityValue = displayUnits.velocity === 'km/h' 
     ? mpsToKph(physicsState.velocity) 
@@ -33,10 +34,24 @@ export default function DataPanel({ physicsState, simulationParams, displayUnits
     ? physicsState.displacement 
     : undefined;
 
+  // Create a screen reader-friendly announcement
+  const liveRegionText = `Time: ${physicsState.time.toFixed(2)} seconds, Velocity: ${velocityValue.toFixed(2)} ${displayUnits.velocity}, Displacement: ${displacementValue.toFixed(2)} ${displayUnits.distance === 'km' ? 'kilometers' : 'meters'}`;
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6 h-full">
       <h2 className="text-xl font-semibold text-slate-800 mb-6">Physics Data</h2>
-      <div className="space-y-1">
+      
+      {/* Screen reader live region for announcing data changes */}
+      <div 
+        className="sr-only" 
+        role="status" 
+        aria-live="polite" 
+        aria-atomic="true"
+      >
+        {liveRegionText}
+      </div>
+
+      <div className="space-y-1" aria-label="Real-time physics data">
         <DataRow 
           icon={Timer}
           label="Time"
@@ -68,5 +83,7 @@ export default function DataPanel({ physicsState, simulationParams, displayUnits
       </div>
     </div>
   );
-}
+});
+
+export default DataPanel;
 

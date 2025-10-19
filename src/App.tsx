@@ -4,6 +4,7 @@ import SimulationCanvas from './components/SimulationCanvas';
 import ControlsPanel from './components/ControlsPanel';
 import DataPanel from './components/DataPanel';
 import GraphModal from './components/GraphModal';
+import HelpModal from './components/HelpModal';
 import { LearningPanel } from './components/LearningPanel';
 import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
@@ -44,6 +45,7 @@ function App() {
   const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Calculate motion bounds whenever simulation parameters change
   useEffect(() => {
@@ -55,15 +57,15 @@ function App() {
     setMotionBounds(bounds);
   }, [simulationParams]);
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     setIsRunning(true);
-  };
+  }, []);
 
-  const handlePause = () => {
+  const handlePause = useCallback(() => {
     setIsRunning(false);
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setIsRunning(false);
     setResetKey(prev => prev + 1);
     setPhysicsState({
@@ -71,9 +73,9 @@ function App() {
       velocity: 0,
       displacement: 0
     });
-  };
+  }, []);
 
-  const handleLoadPreset = (preset: Preset) => {
+  const handleLoadPreset = useCallback((preset: Preset) => {
     // Update simulation parameters with preset values
     setSimulationParams(preset.simulationParams);
     
@@ -85,7 +87,7 @@ function App() {
       velocity: 0,
       displacement: 0
     });
-  };
+  }, [setSimulationParams]);
 
   const handleUpdatePhysics = useCallback((newState: PhysicsState) => {
     setPhysicsState(newState);
@@ -101,6 +103,7 @@ function App() {
       {/* Header */}
       <Header 
         onToggleLearningPanel={() => setIsLearningPanelOpen(!isLearningPanelOpen)}
+        onToggleHelpModal={() => setIsHelpModalOpen(!isHelpModalOpen)}
       />
       
       {/* Main Content */}
@@ -148,6 +151,12 @@ function App() {
         isOpen={isGraphModalOpen}
         onClose={() => setIsGraphModalOpen(false)}
         data={graphData}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
       />
 
       {/* Learning Panel */}

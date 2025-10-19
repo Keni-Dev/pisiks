@@ -1,3 +1,5 @@
+import Tooltip from './Tooltip';
+
 interface SliderInputProps {
   label: string;
   value: number;
@@ -6,6 +8,8 @@ interface SliderInputProps {
   max: number;
   step: number;
   unit?: string;
+  tooltip?: string;
+  ariaLabel?: string;
 }
 
 export default function SliderInput({
@@ -15,7 +19,9 @@ export default function SliderInput({
   min,
   max,
   step,
-  unit = ''
+  unit = '',
+  tooltip,
+  ariaLabel
 }: SliderInputProps) {
   // Check if value is out of bounds
   const isOutOfBounds = value < min || value > max;
@@ -34,8 +40,9 @@ export default function SliderInput({
   return (
     <div className="space-y-2">
       {/* Label */}
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
         {label}
+        {tooltip && <Tooltip content={tooltip} />}
       </label>
 
       {/* Slider and Number Input Container */}
@@ -48,9 +55,14 @@ export default function SliderInput({
           step={step}
           value={value}
           onChange={handleSliderChange}
+          aria-label={ariaLabel || label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={`${value} ${unit}`}
           className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
                      accent-orange-500
-                     hover:bg-slate-300
+                     hover:bg-slate-300 transition-colors
                      focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
         />
 
@@ -63,8 +75,10 @@ export default function SliderInput({
             step={step}
             value={value}
             onChange={handleNumberChange}
+            aria-label={ariaLabel ? `${ariaLabel} (number input)` : `${label} (number input)`}
             className={`
               w-20 px-3 py-1.5 text-sm text-slate-900 border rounded-md
+              transition-all duration-200
               focus:outline-none focus:ring-2 focus:ring-offset-2
               ${isOutOfBounds
                 ? 'border-red-500 focus:ring-red-500 bg-red-50'
@@ -82,7 +96,7 @@ export default function SliderInput({
       
       {/* Validation Error Message */}
       {isOutOfBounds && (
-        <p className="text-xs text-red-600 mt-1">
+        <p className="text-xs text-red-600 mt-1" role="alert">
           Value must be between {min} and {max}
         </p>
       )}
