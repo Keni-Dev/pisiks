@@ -9,18 +9,22 @@ import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 import type { Preset } from './lib/presets';
+import useLocalStorage from './hooks/useLocalStorage';
+
+// Default simulation parameters
+const DEFAULT_PARAMS: SimulationParams = {
+  u: 10,  // initial velocity (m/s)
+  a: 2,   // acceleration (m/s²)
+  duration: 10,  // total simulation time (s)
+  viewMode: 'horizontal',
+  height: 50,  // initial height for freefall (m)
+  objectType: 'ball'
+};
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [simulationParams, setSimulationParams] = useState<SimulationParams>({
-    u: 10,  // initial velocity (m/s)
-    a: 2,   // acceleration (m/s²)
-    duration: 10,  // total simulation time (s)
-    viewMode: 'horizontal',
-    height: 50,  // initial height for freefall (m)
-    objectType: 'ball'
-  });
+  const [simulationParams, setSimulationParams] = useLocalStorage<SimulationParams>('motionSim_params', DEFAULT_PARAMS);
   const [physicsState, setPhysicsState] = useState<PhysicsState>({
     time: 0,
     velocity: 0,
