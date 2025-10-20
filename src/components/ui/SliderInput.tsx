@@ -38,7 +38,7 @@ export default function SliderInput({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 min-w-0">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
         {label}
@@ -46,7 +46,7 @@ export default function SliderInput({
       </label>
 
       {/* Slider and Number Input Container */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         {/* Slider */}
         <input
           type="range"
@@ -67,7 +67,7 @@ export default function SliderInput({
         />
 
         {/* Number Input with Unit */}
-        <div className="flex items-center gap-1">
+  <div className="flex items-center gap-1">
           <input
             type="number"
             min={min}

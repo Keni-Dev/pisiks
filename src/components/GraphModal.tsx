@@ -34,15 +34,28 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
         throw new Error('Could not get canvas context');
       }
 
-      // Set canvas dimensions (adjust based on your needs)
-      const width = 1200;
-      const height = 800;
+      // Get the actual container dimensions to match screen size
+      const containerRect = chartsContainerRef.current.getBoundingClientRect();
+      const isMobile = window.innerWidth < 640;
+      
+      // Set canvas dimensions based on screen size and device pixel ratio for sharp images
+      const pixelRatio = window.devicePixelRatio || 1;
+      const width = Math.min(containerRect.width * pixelRatio, isMobile ? 800 : 1200);
+      const height = isMobile ? 1000 : 800;
+      
       mainCanvas.width = width;
       mainCanvas.height = height;
+      
+      // Scale context to match pixel ratio
+      ctx.scale(pixelRatio, pixelRatio);
+      
+      // Use logical dimensions for drawing
+      const logicalWidth = width / pixelRatio;
+      const logicalHeight = height / pixelRatio;
 
       // Fill white background
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
       // Get all SVG elements (Recharts renders as SVG)
       const svgElements = chartsContainerRef.current.querySelectorAll('svg');
@@ -93,28 +106,36 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
         });
       };
 
+      // Responsive sizing for title and charts
+      const titleSize = isMobile ? 20 : 28;
+      const subtitleSize = isMobile ? 14 : 20;
+      const padding = isMobile ? 30 : 50;
+      const chartHeight = isMobile ? 280 : 300;
+      const chartSpacing = isMobile ? 280 : 350;
+
       // Add title
       ctx.fillStyle = '#1f2937';
-      ctx.font = 'bold 28px sans-serif';
+      ctx.font = `bold ${titleSize}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('Motion Graphs', width / 2, 50);
+      ctx.fillText('Motion Graphs', logicalWidth / 2, isMobile ? 30 : 50);
 
       // Draw each chart
-      let yOffset = 100;
+      let yOffset = isMobile ? 60 : 100;
       for (let i = 0; i < svgElements.length; i++) {
         const svg = svgElements[i] as SVGElement;
         const img = await svgToImage(svg);
         
         // Add chart title
         ctx.fillStyle = '#374151';
-        ctx.font = '600 20px sans-serif';
+        ctx.font = `600 ${subtitleSize}px sans-serif`;
         ctx.textAlign = 'left';
         const title = i === 0 ? 'Velocity vs Time' : 'Displacement vs Time';
-        ctx.fillText(title, 60, yOffset);
+        ctx.fillText(title, padding, yOffset);
         
-        // Draw the chart
-        ctx.drawImage(img, 50, yOffset + 10, width - 100, 300);
-        yOffset += 350;
+        // Draw the chart with proper aspect ratio
+        const chartWidth = logicalWidth - (padding * 2);
+        ctx.drawImage(img, padding, yOffset + 10, chartWidth, chartHeight);
+        yOffset += chartSpacing;
       }
 
       // Convert to blob and download
@@ -140,7 +161,7 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-50"
@@ -148,51 +169,52 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
       />
       
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-2xl w-[95%] max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">Motion Graphs</h2>
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-6 border-b border-gray-200">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">Motion Graphs</h2>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleDownloadCsv}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex-1 sm:flex-initial"
             >
-              <FileDown size={18} />
-              Download as CSV
+              <FileDown size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden xs:inline">Download </span>CSV
             </button>
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Downloading...
+                  <Loader2 size={16} className="animate-spin sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden xs:inline">Downloading...</span>
+                  <span className="xs:hidden">...</span>
                 </>
               ) : (
                 <>
-                  <Download size={18} />
-                  Download as PNG
+                  <Download size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden xs:inline">Download </span>PNG
                 </>
               )}
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
               aria-label="Close modal"
             >
-              <X size={24} className="text-gray-600" />
+              <X size={20} className="sm:w-6 sm:h-6 text-gray-600" />
             </button>
           </div>
         </div>
 
         {/* Charts Container */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div ref={chartsContainerRef} className="space-y-8 bg-white p-6 rounded-lg">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <div ref={chartsContainerRef} className="space-y-4 sm:space-y-8 bg-white p-2 sm:p-6 rounded-lg">
             {/* Velocity vs Time Chart */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-4">
                 Velocity vs Time
               </h3>
               <MotionChart
@@ -206,7 +228,7 @@ const GraphModal = ({ isOpen, onClose, data }: GraphModalProps) => {
 
             {/* Displacement vs Time Chart */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-4">
                 Displacement vs Time
               </h3>
               <MotionChart

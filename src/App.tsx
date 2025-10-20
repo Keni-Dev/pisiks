@@ -12,7 +12,6 @@ import type { PhysicsState } from './lib/physics';
 import type { SimulationParams, GraphDataPoint } from './lib/types';
 import { calculateMotionBounds } from './lib/physics';
 import type { Preset } from './lib/presets';
-import useLocalStorage from './hooks/useLocalStorage';
 // Removed localStorage persistence to avoid control sync issues
 
 // Default simulation parameters
@@ -49,8 +48,14 @@ function App() {
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  // Layout mode with localStorage persistence - default to side-by-side for mobile-friendly experience
-  const [layoutMode, setLayoutMode] = useLocalStorage<LayoutMode>('physics-layout-mode', 'side-by-side');
+  
+  // Helper function to get default layout based on screen size
+  const getDefaultLayout = (): LayoutMode => {
+    return window.innerWidth < 1024 ? 'side-by-side' : 'classic';
+  };
+  
+  // Layout mode - responsive default based on screen size
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(getDefaultLayout());
 
   // Calculate motion bounds whenever simulation parameters change
   useEffect(() => {
@@ -160,6 +165,7 @@ function App() {
                 onLoadPreset={handleLoadPreset}
                 displayUnits={displayUnits}
                 setDisplayUnits={setDisplayUnits}
+                layoutMode={layoutMode}
               />
               <DataPanel 
                 physicsState={physicsState}
@@ -199,20 +205,18 @@ function App() {
               </div>
             </div>
             
-            {/* Centered controls panel with max width */}
-            <div className="max-w-4xl mx-auto">
-              <ControlsPanel 
-                simulationParams={simulationParams}
-                setSimulationParams={setSimulationParams}
-                isRunning={isRunning}
-                onStart={handleStart}
-                onPause={handlePause}
-                onReset={handleReset}
-                onLoadPreset={handleLoadPreset}
-                displayUnits={displayUnits}
-                setDisplayUnits={setDisplayUnits}
-              />
-            </div>
+            <ControlsPanel 
+              simulationParams={simulationParams}
+              setSimulationParams={setSimulationParams}
+              isRunning={isRunning}
+              onStart={handleStart}
+              onPause={handlePause}
+              onReset={handleReset}
+              onLoadPreset={handleLoadPreset}
+              displayUnits={displayUnits}
+              setDisplayUnits={setDisplayUnits}
+              layoutMode={layoutMode}
+            />
           </>
         )}
 
@@ -243,20 +247,18 @@ function App() {
               />
             </div>
             
-            {/* Centered controls panel with max width */}
-            <div className="max-w-4xl mx-auto">
-              <ControlsPanel 
-                simulationParams={simulationParams}
-                setSimulationParams={setSimulationParams}
-                isRunning={isRunning}
-                onStart={handleStart}
-                onPause={handlePause}
-                onReset={handleReset}
-                onLoadPreset={handleLoadPreset}
-                displayUnits={displayUnits}
-                setDisplayUnits={setDisplayUnits}
-              />
-            </div>
+            <ControlsPanel 
+              simulationParams={simulationParams}
+              setSimulationParams={setSimulationParams}
+              isRunning={isRunning}
+              onStart={handleStart}
+              onPause={handlePause}
+              onReset={handleReset}
+              onLoadPreset={handleLoadPreset}
+              displayUnits={displayUnits}
+              setDisplayUnits={setDisplayUnits}
+              layoutMode={layoutMode}
+            />
           </>
         )}
       </main>

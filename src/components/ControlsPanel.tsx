@@ -4,6 +4,7 @@ import { Play, Pause, RefreshCw } from 'lucide-react';
 import SliderInput from './ui/SliderInput';
 import { presets, type Preset } from '../lib/presets';
 import { CollapsibleSection } from './ui/CollapsibleSection';
+import type { LayoutMode } from './Header';
 
 interface ControlsPanelProps {
   simulationParams: {
@@ -25,6 +26,7 @@ interface ControlsPanelProps {
     distance: 'm' | 'km';
   };
   setDisplayUnits: (units: { velocity: 'm/s' | 'km/h'; distance: 'm' | 'km' }) => void;
+  layoutMode?: LayoutMode;
 }
 
 type MotionType = 'uniform' | 'accelerated' | 'freefall';
@@ -38,10 +40,14 @@ const ControlsPanel = memo(function ControlsPanel({
   onReset,
   onLoadPreset,
   displayUnits,
-  setDisplayUnits
+  setDisplayUnits,
+  layoutMode
 }: ControlsPanelProps) {
   const [motionType, setMotionType] = useState<MotionType>('accelerated');
   const [activePresetName, setActivePresetName] = useState<string | null>(null);
+  const isStandaloneLayout = layoutMode === 'side-by-side' || layoutMode === 'overlay';
+  const showSidePresetColumn = layoutMode === 'classic';
+  const sliderGridColumns = showSidePresetColumn ? 'grid-cols-1 2xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2';
 
   const motionTypeOptions = [
     { value: 'uniform', label: 'Uniform' },
@@ -128,14 +134,14 @@ const ControlsPanel = memo(function ControlsPanel({
   const isAccelerationDisabled = motionType === 'uniform' || motionType === 'freefall';
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 h-full">
+    <div className={`bg-white rounded-lg shadow-md border border-slate-200 p-4 h-full w-full ${isStandaloneLayout ? 'max-w-4xl mx-auto' : ''}`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-slate-800">Controls</h2>
       </div>
       
       <div className="space-y-3">
         {/* Control Buttons - Moved to Top */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onStart}
             disabled={isRunning}
@@ -186,14 +192,14 @@ const ControlsPanel = memo(function ControlsPanel({
         </div>
 
         {/* Responsive Grid Layout for Parameters and Presets */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+        <div className={`grid grid-cols-1 gap-3 ${showSidePresetColumn ? 'lg:grid-cols-[minmax(0,1fr)_220px]' : ''}`}>
           {/* Left Column: Parameters and Units */}
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             {/* Main Parameters */}
             <CollapsibleSection title="Parameters" defaultOpen={true}>
               <div className="space-y-3">
                 {/* Motion Type & Object in compact row */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-slate-700 mb-1.5 block">Motion Type</label>
                     <select
@@ -224,7 +230,7 @@ const ControlsPanel = memo(function ControlsPanel({
                 </div>
 
                 {/* Compact Sliders - Better organized on large screens */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className={`grid gap-x-3 gap-y-4 ${sliderGridColumns}`}>
                   <SliderInput
                     label="Initial Velocity (u)"
                     value={simulationParams.u}
@@ -352,35 +358,65 @@ const ControlsPanel = memo(function ControlsPanel({
                 </div>
               </div>
             </CollapsibleSection>
+
+            {/* Inline Quick Presets for standalone layouts */}
+            {!showSidePresetColumn && (
+              <CollapsibleSection title="Quick Presets" defaultOpen={true}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5" role="group" aria-label="Quick preset scenarios">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => {
+                        handlePresetClick(preset);
+                        onReset();
+                      }}
+                      aria-pressed={activePresetName === preset.name}
+                      aria-label={`Load preset: ${preset.name}`}
+                      className={`
+                        px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap
+                        ${activePresetName === preset.name
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }
+                      `}
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleSection>
+            )}
           </div>
 
           {/* Right Column: Quick Presets (side by side on large screens) */}
-          <div className="lg:min-w-[200px]">
-            <CollapsibleSection title="Quick Presets" defaultOpen={true}>
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5" role="group" aria-label="Quick preset scenarios">
-                {presets.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => {
-                      handlePresetClick(preset);
-                      onReset();
-                    }}
-                    aria-pressed={activePresetName === preset.name}
-                    aria-label={`Load preset: ${preset.name}`}
-                    className={`
-                      px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap
-                      ${activePresetName === preset.name
-                        ? 'bg-orange-500 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                      }
-                    `}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-              </div>
-            </CollapsibleSection>
-          </div>
+          {showSidePresetColumn && (
+            <div className="lg:min-w-[200px]">
+              <CollapsibleSection title="Quick Presets" defaultOpen={true}>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5" role="group" aria-label="Quick preset scenarios">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => {
+                        handlePresetClick(preset);
+                        onReset();
+                      }}
+                      aria-pressed={activePresetName === preset.name}
+                      aria-label={`Load preset: ${preset.name}`}
+                      className={`
+                        px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap
+                        ${activePresetName === preset.name
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }
+                      `}
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleSection>
+            </div>
+          )}
         </div>
       </div>
     </div>
