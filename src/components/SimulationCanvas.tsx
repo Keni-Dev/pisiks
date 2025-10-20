@@ -395,26 +395,55 @@ const SimulationCanvas = memo(function SimulationCanvas({
       ctx.drawImage(offscreenCanvasRef.current, 0, 0);
     }
 
-    // Draw position trail (convert WORLD to SCREEN using current viewport so it follows the camera)
+    // Draw position trail with fade effect (convert WORLD to SCREEN using current viewport so it follows the camera)
     if (trailWorld.length > 0) {
       if (viewMode === 'horizontal') {
-        trailWorld.forEach((s) => {
+        trailWorld.forEach((s, index) => {
           const x = viewport.originX + s * viewport.scale;
           const y = viewport.originY;
-          ctx.fillStyle = 'rgba(100, 100, 255, 0.6)';
+          // Create fade effect based on position in trail
+          const alpha = 0.3 + (index / trailWorld.length) * 0.4;
+          const radius = 2 + (index / trailWorld.length) * 2;
+          
+          // Glow effect
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+          gradient.addColorStop(0, `rgba(100, 150, 255, ${alpha})`);
+          gradient.addColorStop(0.5, `rgba(100, 150, 255, ${alpha * 0.5})`);
+          gradient.addColorStop(1, `rgba(100, 150, 255, 0)`);
+          ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Core dot
+          ctx.fillStyle = `rgba(150, 180, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
           ctx.fill();
         });
       } else {
         const offsetY = viewport.originY - canvas.height / 2;
         const groundY = canvas.height - 40 + offsetY;
-        trailWorld.forEach((h) => {
+        trailWorld.forEach((h, index) => {
           const x = 80 + 30; // same fixed X as the object in vertical mode
           const y = groundY - (h * viewport.scale);
-          ctx.fillStyle = 'rgba(100, 100, 255, 0.6)';
+          const alpha = 0.3 + (index / trailWorld.length) * 0.4;
+          const radius = 2 + (index / trailWorld.length) * 2;
+          
+          // Glow effect
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+          gradient.addColorStop(0, `rgba(100, 150, 255, ${alpha})`);
+          gradient.addColorStop(0.5, `rgba(100, 150, 255, ${alpha * 0.5})`);
+          gradient.addColorStop(1, `rgba(100, 150, 255, 0)`);
+          ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Core dot
+          ctx.fillStyle = `rgba(150, 180, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
           ctx.fill();
         });
       }
@@ -506,56 +535,242 @@ function drawEnvironment(
   viewMode: 'horizontal' | 'vertical'
 ) {
   if (viewMode === 'horizontal') {
-    // Draw sky gradient
+    // Draw sky with atmospheric gradient
     const skyGradient = ctx.createLinearGradient(0, 0, 0, viewport.originY);
-    skyGradient.addColorStop(0, '#87CEEB');
+    skyGradient.addColorStop(0, '#4A90E2');
+    skyGradient.addColorStop(0.4, '#87CEEB');
+    skyGradient.addColorStop(0.8, '#B8E6F5');
     skyGradient.addColorStop(1, '#E0F6FF');
     ctx.fillStyle = skyGradient;
     ctx.fillRect(0, 0, canvas.width, viewport.originY);
     
-    // Draw ground
-    ctx.fillStyle = '#8B7355';
+    // Draw clouds
+    drawClouds(ctx, canvas.width, viewport.originY);
+    
+    // Draw ground with gradient and texture
+    const groundGradient = ctx.createLinearGradient(0, viewport.originY, 0, canvas.height);
+    groundGradient.addColorStop(0, '#9B8568');
+    groundGradient.addColorStop(0.3, '#8B7355');
+    groundGradient.addColorStop(1, '#6B5344');
+    ctx.fillStyle = groundGradient;
     ctx.fillRect(0, viewport.originY, canvas.width, canvas.height - viewport.originY);
     
-    // Draw ground line
-    ctx.strokeStyle = '#4A3728';
-    ctx.lineWidth = 3;
+    // Add grass texture
+    drawGrass(ctx, canvas.width, viewport.originY, canvas.height);
+    
+    // Draw ground line with shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+    ctx.strokeStyle = '#3A2718';
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(0, viewport.originY);
     ctx.lineTo(canvas.width, viewport.originY);
     ctx.stroke();
-  } else {
-    // Vertical mode - draw building/cliff
-    ctx.fillStyle = '#6B4423';
-    ctx.fillRect(0, 0, 80, canvas.height);
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
     
-    ctx.strokeStyle = '#4A2F1A';
-    ctx.lineWidth = 3;
+    // Add subtle ground highlights
+    ctx.strokeStyle = 'rgba(139, 115, 85, 0.3)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(80, 0);
-    ctx.lineTo(80, canvas.height);
+    ctx.moveTo(0, viewport.originY + 1);
+    ctx.lineTo(canvas.width, viewport.originY + 1);
     ctx.stroke();
-    
-    // Draw sky
-    const skyGradient = ctx.createLinearGradient(80, 0, canvas.width, 0);
+  } else {
+    // Vertical mode - calculate offsets relative to camera
+    const offsetY = viewport.originY - canvas.height / 2;
+    const groundY = canvas.height - 40 + offsetY;
+    const buildingTop = groundY - canvas.height * 2; // extend well above viewport
+
+    // Draw atmospheric sky
+    const skyGradient = ctx.createLinearGradient(80, 0, canvas.width, canvas.height / 2);
     skyGradient.addColorStop(0, '#E0F6FF');
-    skyGradient.addColorStop(0.5, '#87CEEB');
+    skyGradient.addColorStop(0.3, '#B8E6F5');
+    skyGradient.addColorStop(0.6, '#87CEEB');
+    skyGradient.addColorStop(1, '#4A90E2');
     ctx.fillStyle = skyGradient;
     ctx.fillRect(80, 0, canvas.width - 80, canvas.height);
     
-    // Draw ground (follow camera originY so environment and markers stay aligned)
-    const offsetY = viewport.originY - canvas.height / 2;
-    const groundY = canvas.height - 40 + offsetY;
-    ctx.fillStyle = '#8B7355';
-    ctx.fillRect(80, groundY, canvas.width - 80, canvas.height - groundY);
+    // Draw clouds in vertical mode
+    drawClouds(ctx, canvas.width - 80, canvas.height, 80);
     
-    // Ground line
-    ctx.strokeStyle = '#4A3728';
-    ctx.lineWidth = 3;
+    // Vertical mode - draw realistic building anchored to ground
+  const buildingGradient = ctx.createLinearGradient(0, 0, 80, 0);
+  buildingGradient.addColorStop(0, '#7C818A');
+  buildingGradient.addColorStop(0.5, '#666B75');
+  buildingGradient.addColorStop(1, '#4F535C');
+    ctx.fillStyle = buildingGradient;
+    ctx.fillRect(0, buildingTop, 80, groundY - buildingTop);
+
+    // Draw building windows aligned with camera and above ground
+    drawBuildingWindows(ctx, buildingTop, groundY);
+
+    // Building edge with depth
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 4;
+  ctx.strokeStyle = '#383C45';
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(80, groundY);
-    ctx.lineTo(canvas.width, groundY);
+    ctx.moveTo(80, buildingTop);
+    ctx.lineTo(80, groundY);
     ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    
+    // Draw ground (follow camera originY so environment and markers stay aligned)
+    
+    const groundGradient = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+    groundGradient.addColorStop(0, '#9B8568');
+    groundGradient.addColorStop(0.5, '#8B7355');
+    groundGradient.addColorStop(1, '#6B5344');
+    ctx.fillStyle = groundGradient;
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+    
+    // Add grass for vertical mode
+    drawGrass(ctx, canvas.width - 80, groundY, canvas.height, 80);
+    
+    // Ground line with shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = -2;
+    ctx.strokeStyle = '#3A2718';
+    ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(canvas.width, groundY);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+  }
+}
+
+// Helper function to draw clouds
+function drawClouds(ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number = 0) {
+  const clouds = [
+    { x: 0.15, y: 0.2, size: 40 },
+    { x: 0.45, y: 0.15, size: 50 },
+    { x: 0.75, y: 0.25, size: 35 },
+  ];
+  
+  clouds.forEach(cloud => {
+    const centerX = offsetX + width * cloud.x;
+    const centerY = height * cloud.y;
+    const size = cloud.size;
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    
+    // Draw multiple circles to create fluffy cloud
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(centerX - size * 0.5, centerY + size * 0.2, size * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(centerX + size * 0.5, centerY + size * 0.1, size * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(centerX + size * 0.2, centerY - size * 0.3, size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// Helper function to draw grass
+function drawGrass(ctx: CanvasRenderingContext2D, width: number, startY: number, _height: number, offsetX: number = 0) {
+  ctx.strokeStyle = 'rgba(76, 140, 43, 0.4)';
+  ctx.lineWidth = 1;
+  
+  // Use deterministic pattern based on position instead of random
+  for (let i = 0; i < width / 8; i++) {
+    const baseX = i * 8;
+    // Use sine function for deterministic variation
+    const xOffset = Math.sin(i * 0.5) * 2;
+    const x = offsetX + baseX + xOffset;
+    const grassHeight = 3 + (Math.sin(i * 0.7) + 1) * 2;
+    const y = startY + 2;
+    
+    const tipOffset = Math.cos(i * 0.3) * 1.5;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + tipOffset, y + grassHeight);
+    ctx.stroke();
+  }
+}
+
+// Helper function to draw building windows
+function drawBuildingWindows(ctx: CanvasRenderingContext2D, buildingTop: number, groundY: number) {
+  const windowWidth = 12;
+  const windowHeight = 16;
+  const cols = 3;
+  const startX = 15;
+  const spacingX = 20;
+  const spacingY = 25;
+  const topPadding = 30;
+  const bottomPadding = 55; // keep windows above ground line
+  
+  const startY = buildingTop + topPadding;
+  const maxY = groundY - bottomPadding - windowHeight;
+  if (startY > maxY) {
+    return;
+  }
+
+  const rows = Math.max(0, Math.floor((maxY - startY) / spacingY) + 1);
+
+  // Predefined pattern for lit windows (deterministic, not random)
+  const litPattern = [
+    [true, false, true],
+    [true, true, false],
+    [false, true, true],
+    [true, false, false],
+    [false, true, true],
+    [true, true, false],
+    [false, false, true],
+    [true, true, true],
+    [false, true, false],
+    [true, false, true],
+    [true, true, false],
+    [false, true, true],
+    [true, false, false],
+    [true, true, true],
+    [false, true, false],
+  ];
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = startX + col * spacingX;
+      const y = startY + row * spacingY;
+      
+      // Use deterministic pattern instead of random
+      const patternRow = litPattern[row % litPattern.length];
+      const isLit = patternRow[col % patternRow.length];
+      
+      // Window frame
+      ctx.fillStyle = '#2A2A2A';
+      ctx.fillRect(x - 1, y - 1, windowWidth + 2, windowHeight + 2);
+      
+      // Window glass
+      if (isLit) {
+        const windowGradient = ctx.createLinearGradient(x, y, x + windowWidth, y);
+        windowGradient.addColorStop(0, 'rgba(255, 220, 150, 0.8)');
+        windowGradient.addColorStop(0.5, 'rgba(255, 240, 180, 0.9)');
+        windowGradient.addColorStop(1, 'rgba(255, 220, 150, 0.8)');
+        ctx.fillStyle = windowGradient;
+      } else {
+        ctx.fillStyle = 'rgba(40, 60, 80, 0.6)';
+      }
+      ctx.fillRect(x, y, windowWidth, windowHeight);
+      
+      // Window reflection
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.fillRect(x + 1, y + 1, windowWidth * 0.4, windowHeight * 0.3);
+    }
   }
 }
 
@@ -633,13 +848,26 @@ function drawMarkers(
       const screenY = groundY - (h * viewport.scale);
       
       if (screenY >= -pad && screenY <= canvas.height + pad) {
-        const tickX = 60;
-        ctx.strokeStyle = '#1E293B';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(tickX - 8, screenY);
-        ctx.lineTo(tickX + 8, screenY);
-        ctx.stroke();
+  const tickX = 60;
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  // Outer glow to improve visibility against building
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(tickX - 10, screenY);
+  ctx.lineTo(tickX + 10, screenY);
+  ctx.stroke();
+
+  // Inner highlight for crisp contrast
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tickX - 7, screenY);
+  ctx.lineTo(tickX + 7, screenY);
+  ctx.stroke();
+  ctx.restore();
         
         const label = `${h}m`;
         ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
