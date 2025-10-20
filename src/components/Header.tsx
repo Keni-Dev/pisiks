@@ -1,4 +1,5 @@
 import { BookOpen, HelpCircle, Layout, Layers, Monitor } from 'lucide-react';
+import lorinzImage from '../imgs/lorinz.jpg';
 
 export type LayoutMode = 'classic' | 'side-by-side' | 'overlay';
 
@@ -20,9 +21,16 @@ export default function Header({ onToggleLearningPanel, onToggleHelpModal, layou
     <header className="bg-white shadow-sm border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
-          <h1 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">
-            🧭 PISIKS SIMULATION FOR MA'AM ROSE
-          </h1>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <img
+              src={lorinzImage}
+              alt="Lorinz"
+              className="w-9 h-9 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0"
+            />
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">
+              PISIKS SIMULATION FOR MA'AM ROSE
+            </h1>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           {/* Layout Switcher */}
           <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-300">
